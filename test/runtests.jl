@@ -1,6 +1,8 @@
 using ClassicalTestTheory
+using StatsBase
+using Statistics
 using Test
 
 @testset "ClassicalTestTheory.jl" begin
-    # Write your tests here.
+    include("types.jl")
 end
