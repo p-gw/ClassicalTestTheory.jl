@@ -196,3 +196,35 @@ function kr21(x)
     st = var(scores(x))
     return (n / (n - 1)) * ((st - n * avg_difficulty * avg_facility) / st)
 end
+
+"""
+    glb
+"""
+function glb(x)
+    n = nitems(x)
+
+    C = cov(x)
+    C̃ = zerodiag(C)
+    upr = diag(C)
+    lwr = zeros(n)
+
+    model = Model(SCS.Optimizer)
+    set_silent(model)
+    set_string_names_on_creation(model, false)
+
+    @variable(model, y[1:n])
+    @expression(model, A, Symmetric(C̃ + diagm(y)))
+
+    @objective(model, Min, sum(y))
+    @constraint(model, lwr .<= y .<= upr)
+    @constraint(model, A in PSDCone())
+
+    optimize!(model)
+
+    if termination_status(model) == OPTIMAL
+        sum_y = sum(value.(y))
+        return (sum(C̃) + sum_y) / sum(C)
+    else
+        error("something went wrong")
+    end
+end
