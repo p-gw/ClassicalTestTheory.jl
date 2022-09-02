@@ -1,5 +1,3 @@
-
-
 """
     split(m::AbstractMatrix, is)
 
@@ -7,11 +5,10 @@ Split a matrix by arbitrary indices `is`.
 
 Returns a `Tuple` of matrices `m1`, `m2` with `size(m1, dims=1) == length(is)` and `size(m2, dims=1) == size(m, dims=1) - length(is)`.
 """
-
 function Base.split(m::AbstractMatrix, is)
-    n = nitems(m)
-    exclude = getexcludeindices(n, is)
-    return view(m, :, is), view(m, :, exclude)
+    m1 = view(m, :, is)
+    m2 = view(m, :, Not(is))
+    return m1, m2
 end
 
 """
@@ -19,16 +16,11 @@ end
 
 Split a test by arbitrary indices `is`.
 """
-function Base.split(t::Test, is)
-    n = nitems(t)
-    exclude = getexcludeindices(n, is)
+function Base.split(t::AbstractTest, is)
     t1 = SubTest(t, is)
-    t2 = SubTest(t, exclude)
+    t2 = SubTest(t, Not(is))
     return t1, t2
 end
-
-getexcludeindices(n, is::Union{BitVector,Vector{Bool}}) = .!is
-getexcludeindices(n, is) = setdiff(1:n, is)
 
 """
     splithalf(m::AbstractMatrix; type::Symbol)
@@ -41,6 +33,12 @@ The type of split is determined by `type`
 - `:firstlast`: Split the matrix by first and last half
 - `:random`: Split the matrix by random indices
 """
+function splithalf(x; kwargs...)
+    n = nitems(x)
+    is = getsplitindices(1:n; kwargs...)
+    return split(x, is)
+end
+
 function getsplitindices(x; type::Symbol=:firstlast)
     if type == :oddeven
         is = _oddeven_is(x)
@@ -54,24 +52,9 @@ function getsplitindices(x; type::Symbol=:firstlast)
     return is
 end
 
-function splithalf(m::AbstractMatrix; kwargs...)
-    col_is = 1:size(m, 2)
-    is = getsplitindices(col_is; kwargs...)
-    return m[:, is], m[:, .!is]
-end
-
-"""
-"""
-function splithalf(t::Test; kwargs...)
-    col_is = 1:nitems(t)
-    is = getsplitindices(col_is, kwargs...)
-    t1 = SubTest(t, is)
-    t2 = SubTest(t, .!is)
-    return t1, t2
-end
-
 _oddeven_is(is) = iseven.(is)
 _firstlast_is(is) = is .<= ceil(length(is) / 2)
+
 function _random_is(is)
     s = sample(is, ceil(Int, length(is) / 2), replace=false)
     return [i in s for i in is]

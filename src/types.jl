@@ -7,6 +7,7 @@ struct Test{T<:Real} <: AbstractTest
 end
 
 struct SubTest <: AbstractTest
+    is
     data
     itemcov
     scores
@@ -18,11 +19,18 @@ Test(st::SubTest) = Test{eltype(st.data)}(st.data, st.itemcov, st.scores)
 function SubTest(t::Test, is)
     dview = view(t.data, :, is)
     return SubTest(
+        is,
         dview,
         view(t.itemcov, is, is),
         scores(dview)
     )
 end
+
+eachitem(m::AbstractMatrix) = eachcol(m)
+eachitem(t::AbstractTest) = eachcol(t.data)
+
+eachperson(m::AbstractMatrix) = eachrow(m)
+eachperson(t::AbstractTest) = eachrow(t.data)
 
 scores(v::AbstractVector) = v
 scores(m::AbstractMatrix) = vec(sum(m, dims=2))

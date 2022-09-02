@@ -9,7 +9,7 @@ Return the lower bound estimate of the reliability L₁ described in $GUTTMAN194
 ``\\lambda_1 = 1 - \\frac{\\sum_{j=1}^{n} s_j^2}{s_t^2}``
 """
 function λ1(m::Matrix)
-    sum_sj = sum(x -> var(x), eachcol(m))
+    sum_sj = sum(x -> var(x), eachitem(m))
     st = var(scores(m))
     return 1 - (sum_sj / st)
 end
@@ -99,7 +99,7 @@ To use sampling, specify `n_samples::Int`.
 
 See also [`λ4`](@ref).
 """
-function maxλ4(x; method=:auto, n_samples=1_000)::Float64
+function maxλ4(x; method=:auto, n_samples=10_000)::Float64
     if method == :auto
         if nitems(x) <= 25
             maxλ = _maxλ4_brute_force(x)
@@ -174,13 +174,12 @@ function λ6(x)
     return 1 - sum(1 .- smc) / sum(covmat)
 end
 
-
 """
     kr20
 """
 function kr20(x)
     n = nitems(x)
-    item_facilities = facility.(Ref(x), 1:n)
+    item_facilities = facility.(eachitem(x))
     item_difficulties = 1 .- item_facilities
     st = var(scores(x))
     return (n / (n - 1)) * ((st - sum(item_facilities .* item_difficulties)) / st)
@@ -191,14 +190,17 @@ end
 """
 function kr21(x)
     n = nitems(x)
-    avg_facility = mean(facility.(Ref(x), 1:n))
+    avg_facility = mean(facility.(eachitem(x)))
     avg_difficulty = 1 - avg_facility
     st = var(scores(x))
     return (n / (n - 1)) * ((st - n * avg_difficulty * avg_facility) / st)
 end
 
 """
-    glb
+    glb(x)
+
+Return the greatest lower bound estimate (glb) of the reliability as described in
+Woodhouse, B., & Jackson, P. H. (1977). Lower bounds for the reliability of the total score on a test composed of non-homogeneous items: II: A search procedure to locate the greatest lower bound. *Psychometrika, 42*(4), 579-591.
 """
 function glb(x)
     n = nitems(x)

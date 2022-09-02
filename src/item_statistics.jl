@@ -7,11 +7,25 @@ Return the facility value (proportion correct) of item `i`.
 facility(x, i::Int) = mean(responses(x, i))
 
 """
+    facility(x::AbstractVector)
+
+Return the facility of a vector of item responses `x`.
+"""
+facility(x::AbstractVector) = mean(x)
+
+"""
     difficulty(x, i::Int)
 
 Return the difficulty (proportion incorrect) of item `i`.
 """
 difficulty(x, i::Int) = 1 - facility(x, i)
+
+"""
+    difficulty(x::AbstractVector)
+
+Return the difficulty of a vector of item responses `x`.
+"""
+difficulty(x) = 1 - facility(x)
 
 """
     itc(x, i::Int; correction=true)
