@@ -6,7 +6,9 @@ using Statistics
 using Test
 
 @testset "ClassicalTestTheory.jl" begin
-    include("types.jl")
-    include("reliability.jl")
-    include("split.jl")
+    include("scale.jl")
+    include("test.jl")
+    # include("types.jl")
+    # include("reliability.jl")
+    # include("split.jl")
 end

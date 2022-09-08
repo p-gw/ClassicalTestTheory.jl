@@ -26,11 +26,22 @@ export kr20, kr21
 export glb
 export find
 
+# new
+export DichotomousScale, OrdinalScale
+export id, responses, scores
+
+export Test
+export scales
+
 include("utils.jl")
-include("types.jl")
-include("split.jl")
-include("item_statistics.jl")
+# include("types.jl")
+
+include("scale.jl")
+include("test.jl")
 include("reliability.jl")
-include("find.jl")
+
+# include("split.jl")
+# include("item_statistics.jl")
+# include("find.jl")
 
 end

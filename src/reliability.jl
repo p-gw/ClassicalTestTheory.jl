@@ -1,53 +1,59 @@
 const GUTTMAN1945 = "Guttman, L. (1945). A basis for analyzing test-retest reliability. *Psychometrika, 10*(4), 255-282."
 
 """
-   λ1(m::Matrix)
-   λ1(t::Test)
+   λ1(scale::AbstractScale)::Float64
+   λ1(test::SingleScaleTest)::Float64
+   λ1(test::MultiScaleTest)::Vector{Float64}
 
 Return the lower bound estimate of the reliability L₁ described in $GUTTMAN1945
 
 ``\\lambda_1 = 1 - \\frac{\\sum_{j=1}^{n} s_j^2}{s_t^2}``
 """
-function λ1(m::Matrix)
-    sum_sj = sum(x -> var(x), eachitem(m))
-    st = var(scores(m))
+function λ1(scale::AbstractScale)
+    sum_sj = tr(cov(scale))
+    st = var(scores(scale))
     return 1 - (sum_sj / st)
 end
 
-function λ1(t::AbstractTest)
-    sum_sj = tr(t.itemcov)
-    st = var(scores(t))
-    return 1 - (sum_sj / st)
-end
+λ1(test::SingleScaleTest) = λ1(scales(test))
+λ1(test::MultiScaleTest) = λ1.(scales(test))
 
 """
-    λ2(m::Matrix)
-    λ2(t::Test)
+    λ2(scale::AbstractScale)::Float64
+    λ2(test::SingleScaleTest)::Float64
+    λ2(test::MultiScaleTest)::Vector{Float64}
 
 Return the lower bound estimate of the reliability λ₂ described in $GUTTMAN1945
 
 ``\\lambda_2 = \\lambda_1 + \\frac{\\sqrt{\\frac{n}{n-1}C_2}}{s_t^2}``
 """
-function λ2(x)
-    n = nitems(x)
-    C2 = cov(x) .^ 2
+function λ2(scale::AbstractScale)
+    n = nitems(scale)
+    C2 = cov(scale) .^ 2
     zerodiag!(C2)
-    st = var(scores(x))
-    return λ1(x) + sqrt(n / (n - 1) * sum(C2)) / st
+    st = var(scores(scale))
+    return λ1(scale) + sqrt(n / (n - 1) * sum(C2)) / st
 end
 
+λ2(test::SingleScaleTest) = λ2(scales(test))
+λ2(test::MultiScaleTest) = λ2.(scales(test))
+
 """
-    λ3(m::Matrix)
-    λ3(t::Test)
+    λ3(scale::AbstractScale)::Float64
+    λ3(test::SingleScaleTest)::Float64
+    λ3(test::MultiScaleTest)::Vector{Float64}
 
 Return the lower bound estimate of the reliability λ₃ described in $GUTTMAN1945
 
 ``\\lambda_3 = \\frac{n}{n-1}\\lambda_1``
 """
-function λ3(x)
-    n = nitems(x)
-    return n / (n - 1) * λ1(x)
+function λ3(scale::AbstractScale)
+    n = nitems(scale)
+    return n / (n - 1) * λ1(scale)
 end
+
+λ3(test::SingleScaleTest) = λ3(scales(test))
+λ3(test::MultiScaleTest) = λ3.(scales(test))
 
 """
     α(x)
@@ -57,33 +63,41 @@ Estimate Cronbach's α. `α` is an alias for [`λ3`](@ref).
 const α = λ3
 
 """
-    λ4(m::Matrix)
-    λ4(t::Test)
+    λ4(scale::AbstractScale; kwargs...)::Float64
+    λ4(test::SingleScaleTest; kwargs...)::Float64
+    λ4(test::MultiScaleTest; kwargs...)::Vector{Float64}
 
 Return the lower bound estimate of the reliability λ₄ described in $GUTTMAN1945
 
 ``\\lambda_4 = 2\\( 1 - \\frac{s_a^2 + s_b^2}{s_t^2} \\)``
 
-The calculation of λ₄ is based on splitting `t` in half.
-It is a lower bound of the reliability no matter how the test is split.
+The calculation of λ₄ is based on splitting `scale` in half.
+It is a lower bound of the reliability no matter how the scale is split.
 
-The split of the test can be controlled by the `type` keyword argument (see also [`splithalf`](@ref)).
+The split of the scale can be controlled by the `type` keyword argument (see also [`splithalf`](@ref)).
 
 To get the maximum lower bound see [`maxλ4`](@ref).
 """
-function λ4(x; kwargs...)
-    subtests = splithalf(x; kwargs...)
-    st = var(scores(x))
-    vars = var.(scores.(subtests))
+function λ4(scale::AbstractScale; kwargs...)
+    subscales = splithalf(scale; kwargs...)
+    st = var(scores(scale))
+    vars = var.(scores.(subscales))
     return 2 * (1 - sum(vars) / st)
 end
 
-function λ4(x, is)
+λ4(test::SingleScaleTest; kwargs...) = λ4(scales(test); kwargs)
+λ4(test::MultiScaleTest; kwargs...) = λ4.(scales(test); kwargs)
+
+"""
+"""
+function λ4(scale::AbstractScale, is)
     subtests = split(x, is)
     st = var(scores(x))
     vars = var.(scores.(subtests))
     return 2 * (1 - sum(vars) / st)
 end
+
+λ4(test::SingleScaleTest, is) = λ4(scales(test), is)
 
 """
     maxλ4(x; method=:auto, n_samples=1_000)
