@@ -7,10 +7,14 @@ using Distributions
 using InvertedIndices
 using JuMP
 using LinearAlgebra
-using ProgressMeter
 using Random
 using StatsBase
 using Statistics
+using PsychometricTests
+using Memoization
+using Term
+using Tables
+using Printf
 
 export Test, SubTest
 export eachitem, eachperson
@@ -20,7 +24,7 @@ export split, splithalf
 
 export difficulty, facility, itc
 
-export λ1, λ2, λ3, λ4, maxλ4, λ5, λ6
+export λ1, mλ1, λ2, λ3, λ4, maxλ4, λ5, λ6
 export α
 export kr20, kr21
 export glb
@@ -34,14 +38,16 @@ export Test
 export scales
 
 include("utils.jl")
-# include("types.jl")
-
-include("scale.jl")
-include("test.jl")
 include("reliability.jl")
 
-# include("split.jl")
-# include("item_statistics.jl")
+# include("types.jl")
+
+# include("scale.jl")
+# include("test.jl")
+
+include("split.jl")
+
+include("item_statistics.jl")
 # include("find.jl")
 
 end

@@ -1,103 +1,182 @@
 const GUTTMAN1945 = "Guttman, L. (1945). A basis for analyzing test-retest reliability. *Psychometrika, 10*(4), 255-282."
 
 """
-   λ1(scale::AbstractScale)::Float64
-   λ1(test::SingleScaleTest)::Float64
-   λ1(test::MultiScaleTest)::Vector{Float64}
+    λ1(m::AbstractMatrix)
+    λ1(test::PsychometricTest)
+    λ1(test::PsychometricTest, scale::Symbol)
 
-Return the lower bound estimate of the reliability L₁ described in $GUTTMAN1945
-
-``\\lambda_1 = 1 - \\frac{\\sum_{j=1}^{n} s_j^2}{s_t^2}``
+Calculate the lower bound estimate of the reliability L₁ described in $GUTTMAN1945
 """
-function λ1(scale::AbstractScale)
-    sum_sj = tr(cov(scale))
-    st = var(scores(scale))
+function λ1(m::AbstractMatrix)
+    sum_sj = sum(var, eachcol(m))
+    st = var(sum(m, dims = 2))
     return 1 - (sum_sj / st)
 end
 
-λ1(test::SingleScaleTest) = λ1(scales(test))
-λ1(test::MultiScaleTest) = λ1.(scales(test))
+function λ1(test::PsychometricTest)
+    scales = getscales(test)
 
-"""
-    λ2(scale::AbstractScale)::Float64
-    λ2(test::SingleScaleTest)::Float64
-    λ2(test::MultiScaleTest)::Vector{Float64}
+    if length(scales) > 0
+        rel = [s => λ1(test, s) for s in keys(scales)]
+    else
+        rel = λ1(test, nothing)
+    end
 
-Return the lower bound estimate of the reliability λ₂ described in $GUTTMAN1945
-
-``\\lambda_2 = \\lambda_1 + \\frac{\\sqrt{\\frac{n}{n-1}C_2}}{s_t^2}``
-"""
-function λ2(scale::AbstractScale)
-    n = nitems(scale)
-    C2 = cov(scale) .^ 2
-    zerodiag!(C2)
-    st = var(scores(scale))
-    return λ1(scale) + sqrt(n / (n - 1) * sum(C2)) / st
+    return rel
 end
 
-λ2(test::SingleScaleTest) = λ2(scales(test))
-λ2(test::MultiScaleTest) = λ2.(scales(test))
+function λ1(test::PsychometricTest, scale::Symbol)
+    responses = response_matrix(test, scale)
+    rel = λ1(responses)
+    return rel
+end
+
+function λ1(test::PsychometricTest, ::Nothing)
+    responses = response_matrix(test)
+    rel = λ1(responses)
+    return rel
+end
 
 """
-    λ3(scale::AbstractScale)::Float64
-    λ3(test::SingleScaleTest)::Float64
-    λ3(test::MultiScaleTest)::Vector{Float64}
+    λ2(scale::AbstractScale)
+    λ2(test::PsychometricTest)
+    λ2(test::PsychometricTest, scale::Symbol)
+
+Calculate the lower bound estimate of the reliability λ₂ described in $GUTTMAN1945
+"""
+function λ2(m::AbstractMatrix)
+    n = size(m, 2)
+    C = cov(m)
+    zerodiag!(C)
+    st = var(sum(m, dims = 2))
+    rel = λ1(m) + sqrt(n / (n - 1) * sum(abs2, C)) / st
+    return rel
+end
+
+function λ2(test::PsychometricTest)
+    scales = getscales(test)
+
+    if length(scales) > 0
+        rel = [s => λ2(test, s) for s in keys(scales)]
+    else
+        rel = λ2(test, nothing)
+    end
+
+    return rel
+end
+
+function λ2(test::PsychometricTest, scale::Symbol)
+    responses = response_matrix(test, scale)
+    rel = λ2(responses)
+    return rel
+end
+
+function λ2(test::PsychometricTest, ::Nothing)
+    responses = response_matrix(test)
+    rel = λ2(responses)
+    return rel
+end
+
+"""
+    λ3(m::AbstractMatrix)
+    λ3(test::PsychometricTest)
+    λ3(test::PsychometricTest, scale::Symbol)
 
 Return the lower bound estimate of the reliability λ₃ described in $GUTTMAN1945
-
-``\\lambda_3 = \\frac{n}{n-1}\\lambda_1``
 """
-function λ3(scale::AbstractScale)
-    n = nitems(scale)
-    return n / (n - 1) * λ1(scale)
+function λ3(m::AbstractMatrix)
+    n = size(m, 2)
+    return n / (n - 1) * λ1(m)
 end
 
-λ3(test::SingleScaleTest) = λ3(scales(test))
-λ3(test::MultiScaleTest) = λ3.(scales(test))
+function λ3(test::PsychometricTest)
+    scales = getscales(test)
+
+    if length(scales) > 0
+        rel = [s => λ3(test, s) for s in keys(scales)]
+    else
+        rel = λ3(test, nothing)
+    end
+
+    return rel
+end
+
+function λ3(test::PsychometricTest, scale::Symbol)
+    responses = response_matrix(test, scale)
+    rel = λ3(responses)
+    return rel
+end
+
+function λ3(test::PsychometricTest, ::Nothing)
+    responses = response_matrix(test)
+    rel = λ3(responses)
+    return rel
+end
 
 """
-    α(x)
+    α(m::AbstractMatrix)
+    α(test::PsychometricTest)
+    α(test::PsychometricTest, scale::Symbol)
 
 Estimate Cronbach's α. `α` is an alias for [`λ3`](@ref).
 """
 const α = λ3
 
 """
-    λ4(scale::AbstractScale; kwargs...)::Float64
-    λ4(test::SingleScaleTest; kwargs...)::Float64
-    λ4(test::MultiScaleTest; kwargs...)::Vector{Float64}
+    λ4(m::AbstractMatrix; type::Symbol = :firstlast)
 
 Return the lower bound estimate of the reliability λ₄ described in $GUTTMAN1945
-
-``\\lambda_4 = 2\\( 1 - \\frac{s_a^2 + s_b^2}{s_t^2} \\)``
 
 The calculation of λ₄ is based on splitting `scale` in half.
 It is a lower bound of the reliability no matter how the scale is split.
 
-The split of the scale can be controlled by the `type` keyword argument (see also [`splithalf`](@ref)).
+The split of the scale can be controlled by the `type` keyword argument.
 
 To get the maximum lower bound see [`maxλ4`](@ref).
 """
-function λ4(scale::AbstractScale; kwargs...)
-    subscales = splithalf(scale; kwargs...)
-    st = var(scores(scale))
-    vars = var.(scores.(subscales))
-    return 2 * (1 - sum(vars) / st)
+function λ4(m::AbstractMatrix; type::Symbol = :firstlast)
+    splits = splithalf(m; type)
+    st = var(sum(m, dims = 2))
+
+    s1 = var(sum(splits[1], dims = 2))
+    s2 = var(sum(splits[2], dims = 2))
+
+    return 2 * (1 - (s1 + s2) / st)
 end
 
-λ4(test::SingleScaleTest; kwargs...) = λ4(scales(test); kwargs)
-λ4(test::MultiScaleTest; kwargs...) = λ4.(scales(test); kwargs)
+function λ4(m::AbstractMatrix, is)
+    splits = split(m, is)
+    st = var(sum(m, dims = 2))
 
-"""
-"""
-function λ4(scale::AbstractScale, is)
-    subtests = split(x, is)
-    st = var(scores(x))
-    vars = var.(scores.(subtests))
-    return 2 * (1 - sum(vars) / st)
+    s1 = var(sum(splits[1], dims = 2))
+    s2 = var(sum(splits[2], dims = 2))
+
+    return 2 * (1 - (s1 + s2) / st)
 end
 
-λ4(test::SingleScaleTest, is) = λ4(scales(test), is)
+function λ4(test::PsychometricTest; kwargs...)
+    scales = getscales(test)
+
+    if length(scales) > 0
+        rel = [s => λ4(test, s; kwargs...) for s in keys(scales)]
+    else
+        rel = λ4(test, nothing)
+    end
+
+    return rel
+end
+
+function λ4(test::PsychometricTest, scale::Symbol; kwargs...)
+    responses = response_matrix(test, scale)
+    rel = λ4(responses; kwargs...)
+    return rel
+end
+
+function λ4(test::PsychometricTest, ::Nothing; kwargs...)
+    responses = response_matrix(test)
+    rel = λ4(responses; kwargs...)
+    return rel
+end
 
 """
     maxλ4(x; method=:auto, n_samples=1_000)
@@ -109,21 +188,21 @@ the split-half permutations of `x`.
 As the number of permutations grows, this method becomes infeasible.
 For large numbers of items a (local) maximum of λ₄ can be found by sampling random split-half
 permutations.
-To use sampling, specify `n_samples::Int`.
+To use sampling, specify `n_samples`.
 
 See also [`λ4`](@ref).
 """
-function maxλ4(x; method=:auto, n_samples=10_000)::Float64
+function maxλ4(m::AbstractMatrix; method = :auto, n_samples = 10_000)
     if method == :auto
-        if nitems(x) <= 25
-            maxλ = _maxλ4_brute_force(x)
+        if size(m, 2) <= 25
+            maxλ = _maxλ4_brute_force(m)
         else
-            maxλ = _maxλ4_random(x, n_samples)
+            maxλ = _maxλ4_random(m, n_samples)
         end
     elseif method == :bruteforce
-        maxλ = _maxλ4_brute_force(x)
+        maxλ = _maxλ4_brute_force(m)
     elseif method == :sample
-        maxλ = _maxλ4_random(x, n_samples)
+        maxλ = _maxλ4_random(m, n_samples)
     else
         error("Unknown method")
     end
@@ -131,8 +210,8 @@ function maxλ4(x; method=:auto, n_samples=10_000)::Float64
     return maxλ
 end
 
-function _maxλ4_brute_force(x)
-    n = nitems(x)
+function _maxλ4_brute_force(m::AbstractMatrix)
+    n = size(m, 2)
     n_include = ceil(Int, n / 2)
     is = vcat(trues(n_include), falses(n - n_include))
 
@@ -146,32 +225,30 @@ function _maxλ4_brute_force(x)
     # we only need to iterate over the first half of the permutations, because
     # multiset_permutations(...) returns a sorted vector and λ4 is symmetric with regards
     # to the splits, e.g. [0, 1] and [1, 0] yield identical values of λ4.
-    maxλ = maximum(λ4(x, perm) for perm in Iterators.take(perms, n_perms_iter))
+    maxλ = maximum(λ4(m, findall(perm)) for perm in Iterators.take(perms, n_perms_iter))
     return maxλ
 end
 
-function _maxλ4_random(x, n_samples::Int)
-    n = nitems(x)
+function _maxλ4_random(m::AbstractMatrix, n_samples::Int)
+    n = size(m, 2)
     n_include = ceil(Int, n / 2)
     is = vcat(trues(n_include), falses(n - n_include))
-    maxλ = maximum(λ4(x, shuffle!(is)) for _ in 1:n_samples)
+    maxλ = maximum(λ4(m, findall(shuffle!(is))) for _ in 1:n_samples)
     return maxλ
 end
 
 """
-    λ5(x)
+    λ5(m::AbstractMatrix)
 
 Return the lower bound estimate of the reliability λ₅ described in $GUTTMAN1945
-
-``\\lambda_5 = \\lambda_1 + \\frac{2\\sqrt{\\bar{C}_2}}{s_t^2}``
 """
-function λ5(x)
-    covmat = LowerTriangular(copy(cov(x)))
-    zerodiag!(covmat)
-    C2 = sum(covmat .^ 2, dims=1)
-    C2_max = maximum(C2)
-    st = var(scores(x))
-    return λ1(x) + 2 * sqrt(C2_max) / st
+function λ5(m::AbstractMatrix)
+    C = LowerTriangular(cov(m))
+    zerodiag!(C)
+    sj = sum(abs2, C, dims = 1)
+    Cmax = maximum(sj)
+    st = var(sum(m, dims = 2))
+    return λ1(m) + 2 * sqrt(Cmax) / st
 end
 
 """
@@ -181,32 +258,33 @@ Return the lower bound estimate of the reliability λ₆ described in $GUTTMAN19
 
 ``\\lambda_6 = 1 - \\frac{\\sum_{j=1}^n e_j^2}{s_t^2}``
 """
-function λ6(x)
-    covmat = cov(x)
-    inv_covmat = inv(covmat)
-    smc = 1 .- 1 ./ diag(inv_covmat)
-    return 1 - sum(1 .- smc) / sum(covmat)
+function λ6(m::AbstractMatrix)
+    C = cov(m)
+    Cinv = inv(C)
+    smc = 1 .- 1 ./ diag(Cinv)
+    return 1 - sum(1 .- smc) / sum(C)
 end
 
 """
     kr20
 """
-function kr20(x)
-    n = nitems(x)
-    item_facilities = facility.(eachitem(x))
+function kr20(m::AbstractMatrix)
+    n = size(m, 2)
+    item_facilities = mean(m, dims = 1)
     item_difficulties = 1 .- item_facilities
-    st = var(scores(x))
+    st = var(sum(m, dims = 2))
     return (n / (n - 1)) * ((st - sum(item_facilities .* item_difficulties)) / st)
 end
 
 """
     kr21
 """
-function kr21(x)
-    n = nitems(x)
-    avg_facility = mean(facility.(eachitem(x)))
+function kr21(m::AbstractMatrix)
+    n = size(m, 2)
+    item_facilities = mean(m, dims = 1)
+    avg_facility = mean(item_facilities)
     avg_difficulty = 1 - avg_facility
-    st = var(scores(x))
+    st = var(sum(m, dims = 2))
     return (n / (n - 1)) * ((st - n * avg_difficulty * avg_facility) / st)
 end
 
@@ -216,15 +294,16 @@ end
 Return the greatest lower bound estimate (glb) of the reliability as described in
 Woodhouse, B., & Jackson, P. H. (1977). Lower bounds for the reliability of the total score on a test composed of non-homogeneous items: II: A search procedure to locate the greatest lower bound. *Psychometrika, 42*(4), 579-591.
 """
-function glb(x)
-    n = nitems(x)
+function glb(m::AbstractMatrix)
+    n = size(m, 2)
 
-    C = cov(x)
+    C = cov(m)
     C̃ = zerodiag(C)
     upr = diag(C)
     lwr = zeros(n)
 
     model = Model(SCS.Optimizer)
+
     set_silent(model)
     set_string_names_on_creation(model, false)
 
