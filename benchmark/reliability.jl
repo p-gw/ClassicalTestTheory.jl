@@ -31,3 +31,5 @@ ia = ClassicalTestTheory.itemanalysis(test)
 @code_warntype λ1(test)
 @code_warntype λ1(test_scales)
 @code_warntype λ1(test_scales, :a)
+
+# maxλ4

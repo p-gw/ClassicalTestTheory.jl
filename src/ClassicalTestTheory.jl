@@ -11,10 +11,13 @@ using Random
 using StatsBase
 using Statistics
 using PsychometricTests
+using ProgressMeter
 using Memoization
 using Term
 using Tables
 using Printf
+using ThreadsX
+using SplittablesBase
 
 export Test, SubTest
 export eachitem, eachperson
@@ -37,6 +40,7 @@ export id, responses, scores
 export Test
 export scales
 
+include("references.jl")
 include("utils.jl")
 include("reliability.jl")
 
@@ -48,6 +52,6 @@ include("reliability.jl")
 include("split.jl")
 
 include("item_statistics.jl")
-# include("find.jl")
+include("find.jl")
 
 end

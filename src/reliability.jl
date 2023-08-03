@@ -1,5 +1,3 @@
-const GUTTMAN1945 = "Guttman, L. (1945). A basis for analyzing test-retest reliability. *Psychometrika, 10*(4), 255-282."
-
 """
     λ1(m::AbstractMatrix)
     λ1(test::PsychometricTest)
@@ -11,30 +9,6 @@ function λ1(m::AbstractMatrix)
     sum_sj = sum(var, eachcol(m))
     st = var(sum(m, dims = 2))
     return 1 - (sum_sj / st)
-end
-
-function λ1(test::PsychometricTest)
-    scales = getscales(test)
-
-    if length(scales) > 0
-        rel = [s => λ1(test, s) for s in keys(scales)]
-    else
-        rel = λ1(test, nothing)
-    end
-
-    return rel
-end
-
-function λ1(test::PsychometricTest, scale::Symbol)
-    responses = response_matrix(test, scale)
-    rel = λ1(responses)
-    return rel
-end
-
-function λ1(test::PsychometricTest, ::Nothing)
-    responses = response_matrix(test)
-    rel = λ1(responses)
-    return rel
 end
 
 """
@@ -53,64 +27,16 @@ function λ2(m::AbstractMatrix)
     return rel
 end
 
-function λ2(test::PsychometricTest)
-    scales = getscales(test)
-
-    if length(scales) > 0
-        rel = [s => λ2(test, s) for s in keys(scales)]
-    else
-        rel = λ2(test, nothing)
-    end
-
-    return rel
-end
-
-function λ2(test::PsychometricTest, scale::Symbol)
-    responses = response_matrix(test, scale)
-    rel = λ2(responses)
-    return rel
-end
-
-function λ2(test::PsychometricTest, ::Nothing)
-    responses = response_matrix(test)
-    rel = λ2(responses)
-    return rel
-end
-
 """
     λ3(m::AbstractMatrix)
     λ3(test::PsychometricTest)
     λ3(test::PsychometricTest, scale::Symbol)
 
-Return the lower bound estimate of the reliability λ₃ described in $GUTTMAN1945
+Calculate the lower bound estimate of the reliability λ₃ described in $GUTTMAN1945
 """
 function λ3(m::AbstractMatrix)
     n = size(m, 2)
     return n / (n - 1) * λ1(m)
-end
-
-function λ3(test::PsychometricTest)
-    scales = getscales(test)
-
-    if length(scales) > 0
-        rel = [s => λ3(test, s) for s in keys(scales)]
-    else
-        rel = λ3(test, nothing)
-    end
-
-    return rel
-end
-
-function λ3(test::PsychometricTest, scale::Symbol)
-    responses = response_matrix(test, scale)
-    rel = λ3(responses)
-    return rel
-end
-
-function λ3(test::PsychometricTest, ::Nothing)
-    responses = response_matrix(test)
-    rel = λ3(responses)
-    return rel
 end
 
 """
@@ -124,13 +50,19 @@ const α = λ3
 
 """
     λ4(m::AbstractMatrix; type::Symbol = :firstlast)
+    λ4(test::PsychometricTest; type::Symbol = :firstlast)
+    λ4(test::PsychometricTest, scale::Symbol; type::Symbol = :firstlast)
 
 Return the lower bound estimate of the reliability λ₄ described in $GUTTMAN1945
 
-The calculation of λ₄ is based on splitting `scale` in half.
+The calculation of λ₄ is based on splitting the test in half.
 It is a lower bound of the reliability no matter how the scale is split.
 
 The split of the scale can be controlled by the `type` keyword argument.
+The following options are available for `type`:
+- `:firstlast`: Split the test by first and last half
+- `:oddeven`: Split the test by odd and even indices
+- `:random`: Split the test by random indices
 
 To get the maximum lower bound see [`maxλ4`](@ref).
 """
@@ -154,41 +86,19 @@ function λ4(m::AbstractMatrix, is)
     return 2 * (1 - (s1 + s2) / st)
 end
 
-function λ4(test::PsychometricTest; kwargs...)
-    scales = getscales(test)
-
-    if length(scales) > 0
-        rel = [s => λ4(test, s; kwargs...) for s in keys(scales)]
-    else
-        rel = λ4(test, nothing)
-    end
-
-    return rel
-end
-
-function λ4(test::PsychometricTest, scale::Symbol; kwargs...)
-    responses = response_matrix(test, scale)
-    rel = λ4(responses; kwargs...)
-    return rel
-end
-
-function λ4(test::PsychometricTest, ::Nothing; kwargs...)
-    responses = response_matrix(test)
-    rel = λ4(responses; kwargs...)
-    return rel
-end
-
 """
-    maxλ4(x; method=:auto, n_samples=1_000)
+    maxλ4(m::AbstractMatrix; method = :auto, n_samples = 10_000)
+    maxλ4(test::PsychometricTest; method = :auto, n_samples = 10_000)
+    maxλ4(test::PsychometricTest, scale::Symbol; method = :auto, n_samples = 10_000)
 
-Return the maximum lower bound estimate of the reliability λ₄ described in $GUTTMAN1945
+Calculate the maximum lower bound estimate of the reliability λ₄ described in $GUTTMAN1945
 
-By default (if `n_samples=nothing`) the maximum value is found by brute force iteration over
-the split-half permutations of `x`.
-As the number of permutations grows, this method becomes infeasible.
-For large numbers of items a (local) maximum of λ₄ can be found by sampling random split-half
-permutations.
-To use sampling, specify `n_samples`.
+The `method` keyword argument determines the way the bound is estimated. Available options
+are:
+- `:bruteforce`: Calculate λ₄ for each split-half combination.
+- `:sample`: Calculate λ₄ for `n_samples` samples of split-half combinations.
+- `:auto` (the default): if the number of items is below 25, `:bruteforce` is applied,
+  `:sample` otherwise.
 
 See also [`λ4`](@ref).
 """
@@ -213,32 +123,32 @@ end
 function _maxλ4_brute_force(m::AbstractMatrix)
     n = size(m, 2)
     n_include = ceil(Int, n / 2)
-    is = vcat(trues(n_include), falses(n - n_include))
+    is = axes(m, 2)
 
-    perms = multiset_permutations(is, length(is))
-    n_perms_iter = Int(length(perms) / 2)
+    combs = combinations(is, n_include)
+    ncombs = length(combs)
 
-    if n_perms_iter > 1e6
-        @info "Brute forcing $(n_perms_iter) permutations. Adjust your expectations accordingly..."
+    if ncombs > 1e6
+        @info "Brute forcing $(ncombs) combinatinos. Adjust your expectations accordingly..."
     end
 
-    # we only need to iterate over the first half of the permutations, because
-    # multiset_permutations(...) returns a sorted vector and λ4 is symmetric with regards
-    # to the splits, e.g. [0, 1] and [1, 0] yield identical values of λ4.
-    maxλ = maximum(λ4(m, findall(perm)) for perm in Iterators.take(perms, n_perms_iter))
+    maxλ = maximum(λ4(m, c) for c in combs)
+
     return maxλ
 end
 
 function _maxλ4_random(m::AbstractMatrix, n_samples::Int)
     n = size(m, 2)
     n_include = ceil(Int, n / 2)
-    is = vcat(trues(n_include), falses(n - n_include))
-    maxλ = maximum(λ4(m, findall(shuffle!(is))) for _ in 1:n_samples)
+    is = axes(m, 2)
+    maxλ = maximum(λ4(m, sample(is, n_include, replace = false)) for _ in 1:n_samples)
     return maxλ
 end
 
 """
     λ5(m::AbstractMatrix)
+    λ5(test::PsychometricTest)
+    λ5(test::PsychometricTest, scale::Symbol)
 
 Return the lower bound estimate of the reliability λ₅ described in $GUTTMAN1945
 """
@@ -252,11 +162,11 @@ function λ5(m::AbstractMatrix)
 end
 
 """
-    λ6(x)
+    λ6(m::AbstractMatrix)
+    λ6(test::PsychometricTest)
+    λ6(test::PsychometricTest, scale::Symbol)
 
 Return the lower bound estimate of the reliability λ₆ described in $GUTTMAN1945
-
-``\\lambda_6 = 1 - \\frac{\\sum_{j=1}^n e_j^2}{s_t^2}``
 """
 function λ6(m::AbstractMatrix)
     C = cov(m)
@@ -266,7 +176,9 @@ function λ6(m::AbstractMatrix)
 end
 
 """
-    kr20
+    kr20(m::AbstractMatrix)
+    kr20(test::PsychometricTest)
+    kr20(test::PsychometricTest, scale::Symbol)
 """
 function kr20(m::AbstractMatrix)
     n = size(m, 2)
@@ -277,7 +189,9 @@ function kr20(m::AbstractMatrix)
 end
 
 """
-    kr21
+    kr21(m::AbstractMatrix)
+    kr21(test::PsychometricTest)
+    kr21(test::PsychometricTest, scale::Symbol)
 """
 function kr21(m::AbstractMatrix)
     n = size(m, 2)
@@ -289,10 +203,12 @@ function kr21(m::AbstractMatrix)
 end
 
 """
-    glb(x)
+    glb(m::AbstractMatrix)
+    glb(test::PsychometricTest)
+    glb(test::PsychometricTest, scale::Symbol)
 
 Return the greatest lower bound estimate (glb) of the reliability as described in
-Woodhouse, B., & Jackson, P. H. (1977). Lower bounds for the reliability of the total score on a test composed of non-homogeneous items: II: A search procedure to locate the greatest lower bound. *Psychometrika, 42*(4), 579-591.
+$WOODHOUSE1977
 """
 function glb(m::AbstractMatrix)
     n = size(m, 2)
@@ -321,5 +237,32 @@ function glb(m::AbstractMatrix)
         return (sum(C̃) + sum_y) / sum(C)
     else
         error("something went wrong")
+    end
+end
+
+# generate function definitions for PsychometricTest
+for f in [:λ1, :λ2, :λ3, :λ4, :maxλ4, :λ5, :λ6, :kr20, :kr21, :glb]
+    @eval begin
+        function $(f)(test::PsychometricTest; kwargs...)
+            scales = getscales(test)
+
+            if length(scales) > 0
+                rel = [s => $(f)(test, s; kwargs...) for s in keys(scales)]
+            else
+                rel = $(f)(test, nothing; kwargs...)
+            end
+
+            return rel
+        end
+
+        function $(f)(test::PsychometricTest, scale::Symbol; kwargs...)
+            responses = response_matrix(test, scale)
+            return $(f)(responses; kwargs...)
+        end
+
+        function $(f)(test::PsychometricTest, ::Nothing; kwargs...)
+            responses = response_matrix(test)
+            return $(f)(responses; kwargs...)
+        end
     end
 end

@@ -1,14 +1,12 @@
 using ClassicalTestTheory
 using Distributions
-using Random
-using StatsBase
-using Statistics
+using PsychometricTests
 using Test
 
 @testset "ClassicalTestTheory.jl" begin
-    include("scale.jl")
-    include("test.jl")
+    include("reliability.jl")
+    # include("scale.jl")
+    # include("test.jl")
     # include("types.jl")
-    # include("reliability.jl")
     # include("split.jl")
 end
