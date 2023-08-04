@@ -240,29 +240,67 @@ function glb(m::AbstractMatrix)
     end
 end
 
+"""
+    μ(m::AbstractMatrix, r::Int)
+    μ(test::PsychometricTest, r::Int)
+    μ(test::PsychometricTest, scale::Symbol, r::Int)
+
+Calculate the lower bound of the reliability μ derived in $TENBERGE1978
+
+## Notes
+- If `r = 0` then μ is equivalent to Cronbach's alpha.
+- If `r = 1` then μ is equivalent to Guttman's λ₂.
+"""
+function μ(m::AbstractMatrix, r::Int)
+    r >= 0 || throw(ArgumentError("r must be non-negative."))
+
+    n = size(m, 2)
+    C = BigFloat.(cov(m))
+    zerodiag!(C)
+
+    st = var(sum(m, dims = 2))
+    p_sum = zero(BigFloat)
+
+    for h in Iterators.reverse(0:r)
+        p_h = sum(c -> c^(2^h), C)
+
+        if h == r
+            p_h *= n / (n - 1)
+        end
+
+        if h == 0
+            p_sum = p_sum + p_h
+        else
+            p_sum = sqrt(p_sum + p_h)
+        end
+    end
+
+    return Float64(p_sum) / st
+end
+
 # generate function definitions for PsychometricTest
-for f in [:λ1, :λ2, :λ3, :λ4, :maxλ4, :λ5, :λ6, :kr20, :kr21, :glb]
+for f in [:λ1, :λ2, :λ3, :λ4, :maxλ4, :λ5, :λ6, :kr20, :kr21, :glb, :μ]
     @eval begin
-        function $(f)(test::PsychometricTest; kwargs...)
+        function $(f)(test::PsychometricTest, args...; kwargs...)
             scales = getscales(test)
 
             if length(scales) > 0
-                rel = [s => $(f)(test, s; kwargs...) for s in keys(scales)]
+                rel = [s => $(f)(test, s, args...; kwargs...) for s in keys(scales)]
             else
-                rel = $(f)(test, nothing; kwargs...)
+                rel = $(f)(test, nothing, args...; kwargs...)
             end
 
             return rel
         end
 
-        function $(f)(test::PsychometricTest, scale::Symbol; kwargs...)
+        function $(f)(test::PsychometricTest, scale::Symbol, args...; kwargs...)
             responses = response_matrix(test, scale)
-            return $(f)(responses; kwargs...)
+            return $(f)(responses, args...; kwargs...)
         end
 
-        function $(f)(test::PsychometricTest, ::Nothing; kwargs...)
+        function $(f)(test::PsychometricTest, ::Nothing, args...; kwargs...)
             responses = response_matrix(test)
-            return $(f)(responses; kwargs...)
+            return $(f)(responses, args...; kwargs...)
         end
     end
 end

@@ -18,6 +18,8 @@ using Tables
 using Printf
 using ThreadsX
 using SplittablesBase
+using ParallelUtilities
+using MultiFloats
 
 export Test, SubTest
 export eachitem, eachperson
@@ -27,11 +29,6 @@ export split, splithalf
 
 export difficulty, facility, itc
 
-export λ1, mλ1, λ2, λ3, λ4, maxλ4, λ5, λ6
-export α
-export kr20, kr21
-export glb
-export find
 
 # new
 export DichotomousScale, OrdinalScale
@@ -40,8 +37,16 @@ export id, responses, scores
 export Test
 export scales
 
+# reliability
+export λ1, mλ1, λ2, λ3, λ4, maxλ4, λ5, λ6
+export α, μ
+export kr20, kr21
+export glb
+export find
+
 include("references.jl")
 include("utils.jl")
+
 include("reliability.jl")
 
 # include("types.jl")

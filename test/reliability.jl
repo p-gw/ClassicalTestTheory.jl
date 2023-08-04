@@ -28,16 +28,32 @@
         @test kr21(m) ≈ kr21(t)
 
         @test glb(m) ≈ glb(t)
+        @test μ(m, 0) ≈ μ(t, 0)
+        @test μ(m, 1) ≈ μ(t, 1)
     end
 
-    @testset "theoretical guarantees of λ" begin
+    @testset "λ" begin
+        # theoretical guarantees
         @test λ1(t) > 0
         @test λ1(t) < λ3(t) <= λ2(t) <= maxλ4(t, method = :bruteforce)
         @test α(t) == λ3(t)
+        @test maxλ4(t, method = :sample, n_samples = 100) <= maxλ4(t, method = :bruteforce)
     end
 
-    # theoretical guarantees of glb
-    @testset "theoretical guarantees of glb" begin
+    @testset "glb" begin
+        # theoretical guarantees
         @test maxλ4(t, method = :bruteforce) <= glb(t)
+    end
+
+    @testset "μ" begin
+        @test_throws ArgumentError μ(m, -1)
+
+        # theoretical guarantees
+        for r in 1:10
+            @test μ(t, r - 1) <= μ(t, r)
+        end
+
+        @test μ(t, 0) ≈ α(t)
+        @test μ(t, 1) ≈ λ2(t)
     end
 end

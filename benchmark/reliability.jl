@@ -33,3 +33,12 @@ ia = ClassicalTestTheory.itemanalysis(test)
 @code_warntype λ1(test_scales, :a)
 
 # maxλ4
+
+# find
+find(test, 6)
+
+@benchmark find($test, $6)
+
+@code_warntype find(test, 6)
+
+@profview_allocs find(test, 6, criterion = α) sample_rate = 1

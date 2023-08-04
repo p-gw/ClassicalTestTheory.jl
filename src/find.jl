@@ -12,10 +12,32 @@ end
 function find(test::PsychometricTest, args...; kwargs...)
     responses = response_matrix(test)
     is = _find(responses, args...; kwargs...)
-    return subset(test, :, is)
+    item_ids = getid.(getitems(test)[is])
+    return subset(test, :, item_ids)
 end
 
-function _find(m::AbstractMatrix, n::Int; criterion = glb, progress = true, kwargs...)
+function find(test::PsychometricTest, scale::Symbol, args...; kwargs...)
+    responses = response_matrix(test, scale)
+    is = _find(responses, args...; kwargs...)
+    item_ids = getid.(getitems(test)[is])
+    return subset(test, :, item_ids)
+end
+
+function _find(
+    m::AbstractMatrix,
+    n::Int;
+    criterion::F = glb,
+    progress = true,
+    kwargs...,
+) where {F}
+    if n >= size(m, 2)
+        throw(
+            ArgumentError(
+                "The subset size must be smaller than the size of the orginial test.",
+            ),
+        )
+    end
+
     is = axes(m, 2)
     combs = combinations(is, n)
 
@@ -31,14 +53,18 @@ function _find(m::AbstractMatrix, n::Int; criterion = glb, progress = true, kwar
 
     for (i, c) in enumerate(combs)
         subtest = view(m, :, c)
-        crit = criterion(subtest, kwargs...)
+        crit = criterion(subtest; kwargs...)
 
         if crit > max_crit
             max_crit = crit
             optimal_is = c
         end
 
-        ProgressMeter.update!(prog, i, showvalues = [(:reliability, max_crit)])
+        ProgressMeter.update!(
+            prog,
+            i,
+            showvalues = [(:items, optimal_is), (:reliability, max_crit)],
+        )
     end
 
     ProgressMeter.finish!(prog)
