@@ -14,41 +14,21 @@ using ProgressMeter
 using Term
 using Tables
 
-export Test, SubTest
-export eachitem, eachperson
-export scores, responses, nitems, npersons
-
-export split, splithalf
-
-export difficulty, facility, itc
-
-
-# new
-export DichotomousScale, OrdinalScale
-export id, responses, scores
-
-export Test
-export scales
-
-# reliability
-export lambda1, mlambda1, lambda2, lambda3, lambda4, maxlambda4, lambda5, lambda6
-export alpha, mu
+# reliability measures
+export lambda1, lambda2, lambda3, lambda4, maxlambda4, lambda5, lambda6
 export kr20, kr21
-export glb
+export alpha, glb, mu
+
+# item statistics
+export itc, itemanalysis
+
+# find
 export find
 
 include("references.jl")
 include("utils.jl")
-
-include("reliability.jl")
-
-# include("types.jl")
-
-# include("scale.jl")
-# include("test.jl")
-
 include("split.jl")
-
+include("reliability.jl")
 include("item_statistics.jl")
 include("find.jl")
 
