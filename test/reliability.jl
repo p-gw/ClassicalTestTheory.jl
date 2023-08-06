@@ -16,44 +16,45 @@
     t = PsychometricTest(m)
 
     @testset "equality of AbstractMatrix and PsychometricTest methods" begin
-        @test λ1(m) ≈ λ1(t)
-        @test λ2(m) ≈ λ2(t)
-        @test λ3(m) ≈ λ3(t)
-        @test λ4(m) ≈ λ4(t)
-        @test maxλ4(m, method = :bruteforce) ≈ maxλ4(t, method = :bruteforce)
-        @test λ5(m) ≈ λ5(t)
-        @test λ6(m) ≈ λ6(t)
+        @test lambda1(m) ≈ lambda1(t)
+        @test lambda2(m) ≈ lambda2(t)
+        @test lambda3(m) ≈ lambda3(t)
+        @test lambda4(m) ≈ lambda4(t)
+        @test maxlambda4(m, method = :bruteforce) ≈ maxlambda4(t, method = :bruteforce)
+        @test lambda5(m) ≈ lambda5(t)
+        @test lambda6(m) ≈ lambda6(t)
 
         @test kr20(m) ≈ kr20(t)
         @test kr21(m) ≈ kr21(t)
 
         @test glb(m) ≈ glb(t)
-        @test μ(m, 0) ≈ μ(t, 0)
-        @test μ(m, 1) ≈ μ(t, 1)
+        @test mu(m, 0) ≈ mu(t, 0)
+        @test mu(m, 1) ≈ mu(t, 1)
     end
 
-    @testset "λ" begin
+    @testset "lambda" begin
         # theoretical guarantees
-        @test λ1(t) > 0
-        @test λ1(t) < λ3(t) <= λ2(t) <= maxλ4(t, method = :bruteforce)
-        @test α(t) == λ3(t)
-        @test maxλ4(t, method = :sample, n_samples = 100) <= maxλ4(t, method = :bruteforce)
+        @test lambda1(t) > 0
+        @test lambda1(t) < lambda3(t) <= lambda2(t) <= maxlambda4(t, method = :bruteforce)
+        @test alpha(t) == lambda3(t)
+        @test maxlambda4(t, method = :sample, n_samples = 100) <=
+              maxlambda4(t, method = :bruteforce)
     end
 
     @testset "glb" begin
         # theoretical guarantees
-        @test maxλ4(t, method = :bruteforce) <= glb(t)
+        @test maxlambda4(t, method = :bruteforce) <= glb(t)
     end
 
-    @testset "μ" begin
-        @test_throws ArgumentError μ(m, -1)
+    @testset "mu" begin
+        @test_throws ArgumentError mu(m, -1)
 
         # theoretical guarantees
         for r in 1:10
-            @test μ(t, r - 1) <= μ(t, r)
+            @test mu(t, r - 1) <= mu(t, r)
         end
 
-        @test μ(t, 0) ≈ α(t)
-        @test μ(t, 1) ≈ λ2(t)
+        @test mu(t, 0) ≈ alpha(t)
+        @test mu(t, 1) ≈ lambda2(t)
     end
 end

@@ -38,8 +38,8 @@ export Test
 export scales
 
 # reliability
-export λ1, mλ1, λ2, λ3, λ4, maxλ4, λ5, λ6
-export α, μ
+export lambda1, mlambda1, lambda2, lambda3, lambda4, maxlambda4, lambda5, lambda6
+export alpha, mu
 export kr20, kr21
 export glb
 export find

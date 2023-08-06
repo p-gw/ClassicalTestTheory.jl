@@ -1,61 +1,61 @@
 """
-    λ1(m::AbstractMatrix)
-    λ1(test::PsychometricTest)
-    λ1(test::PsychometricTest, scale::Symbol)
+    lambda1(m::AbstractMatrix)
+    lambda1(test::PsychometricTest)
+    lambda1(test::PsychometricTest, scale::Symbol)
 
 Calculate the lower bound estimate of the reliability L₁ described in $GUTTMAN1945
 """
-function λ1(m::AbstractMatrix)
+function lambda1(m::AbstractMatrix)
     sum_sj = sum(var, eachcol(m))
     st = var(sum(m, dims = 2))
     return 1 - (sum_sj / st)
 end
 
 """
-    λ2(scale::AbstractScale)
-    λ2(test::PsychometricTest)
-    λ2(test::PsychometricTest, scale::Symbol)
+    lambda2(scale::AbstractScale)
+    lambda2(test::PsychometricTest)
+    lambda2(test::PsychometricTest, scale::Symbol)
 
-Calculate the lower bound estimate of the reliability λ₂ described in $GUTTMAN1945
+Calculate the lower bound estimate of the reliability lambda₂ described in $GUTTMAN1945
 """
-function λ2(m::AbstractMatrix)
+function lambda2(m::AbstractMatrix)
     n = size(m, 2)
     C = cov(m)
     zerodiag!(C)
     st = var(sum(m, dims = 2))
-    rel = λ1(m) + sqrt(n / (n - 1) * sum(abs2, C)) / st
+    rel = lambda1(m) + sqrt(n / (n - 1) * sum(abs2, C)) / st
     return rel
 end
 
 """
-    λ3(m::AbstractMatrix)
-    λ3(test::PsychometricTest)
-    λ3(test::PsychometricTest, scale::Symbol)
+    lambda3(m::AbstractMatrix)
+    lambda3(test::PsychometricTest)
+    lambda3(test::PsychometricTest, scale::Symbol)
 
-Calculate the lower bound estimate of the reliability λ₃ described in $GUTTMAN1945
+Calculate the lower bound estimate of the reliability lambda₃ described in $GUTTMAN1945
 """
-function λ3(m::AbstractMatrix)
+function lambda3(m::AbstractMatrix)
     n = size(m, 2)
-    return n / (n - 1) * λ1(m)
+    return n / (n - 1) * lambda1(m)
 end
 
 """
-    α(m::AbstractMatrix)
-    α(test::PsychometricTest)
-    α(test::PsychometricTest, scale::Symbol)
+    alpha(m::AbstractMatrix)
+    alpha(test::PsychometricTest)
+    alpha(test::PsychometricTest, scale::Symbol)
 
-Estimate Cronbach's α. `α` is an alias for [`λ3`](@ref).
+Estimate Cronbach's alpha. `alpha` is an alias for [`lambda3`](@ref).
 """
-const α = λ3
+const alpha = lambda3
 
 """
-    λ4(m::AbstractMatrix; type::Symbol = :firstlast)
-    λ4(test::PsychometricTest; type::Symbol = :firstlast)
-    λ4(test::PsychometricTest, scale::Symbol; type::Symbol = :firstlast)
+    lambda4(m::AbstractMatrix; type::Symbol = :firstlast)
+    lambda4(test::PsychometricTest; type::Symbol = :firstlast)
+    lambda4(test::PsychometricTest, scale::Symbol; type::Symbol = :firstlast)
 
-Return the lower bound estimate of the reliability λ₄ described in $GUTTMAN1945
+Return the lower bound estimate of the reliability lambda₄ described in $GUTTMAN1945
 
-The calculation of λ₄ is based on splitting the test in half.
+The calculation of lambda₄ is based on splitting the test in half.
 It is a lower bound of the reliability no matter how the scale is split.
 
 The split of the scale can be controlled by the `type` keyword argument.
@@ -64,9 +64,9 @@ The following options are available for `type`:
 - `:oddeven`: Split the test by odd and even indices
 - `:random`: Split the test by random indices
 
-To get the maximum lower bound see [`maxλ4`](@ref).
+To get the maximum lower bound see [`maxlambda4`](@ref).
 """
-function λ4(m::AbstractMatrix; type::Symbol = :firstlast)
+function lambda4(m::AbstractMatrix; type::Symbol = :firstlast)
     splits = splithalf(m; type)
     st = var(sum(m, dims = 2))
 
@@ -76,7 +76,7 @@ function λ4(m::AbstractMatrix; type::Symbol = :firstlast)
     return 2 * (1 - (s1 + s2) / st)
 end
 
-function λ4(m::AbstractMatrix, is)
+function lambda4(m::AbstractMatrix, is)
     splits = split(m, is)
     st = var(sum(m, dims = 2))
 
@@ -87,40 +87,40 @@ function λ4(m::AbstractMatrix, is)
 end
 
 """
-    maxλ4(m::AbstractMatrix; method = :auto, n_samples = 10_000)
-    maxλ4(test::PsychometricTest; method = :auto, n_samples = 10_000)
-    maxλ4(test::PsychometricTest, scale::Symbol; method = :auto, n_samples = 10_000)
+    maxlambda4(m::AbstractMatrix; method = :auto, n_samples = 10_000)
+    maxlambda4(test::PsychometricTest; method = :auto, n_samples = 10_000)
+    maxlambda4(test::PsychometricTest, scale::Symbol; method = :auto, n_samples = 10_000)
 
-Calculate the maximum lower bound estimate of the reliability λ₄ described in $GUTTMAN1945
+Calculate the maximum lower bound estimate of the reliability lambda₄ described in $GUTTMAN1945
 
 The `method` keyword argument determines the way the bound is estimated. Available options
 are:
-- `:bruteforce`: Calculate λ₄ for each split-half combination.
-- `:sample`: Calculate λ₄ for `n_samples` samples of split-half combinations.
+- `:bruteforce`: Calculate lambda₄ for each split-half combination.
+- `:sample`: Calculate lambda₄ for `n_samples` samples of split-half combinations.
 - `:auto` (the default): if the number of items is below 25, `:bruteforce` is applied,
   `:sample` otherwise.
 
-See also [`λ4`](@ref).
+See also [`lambda4`](@ref).
 """
-function maxλ4(m::AbstractMatrix; method = :auto, n_samples = 10_000)
+function maxlambda4(m::AbstractMatrix; method = :auto, n_samples = 10_000)
     if method == :auto
         if size(m, 2) <= 25
-            maxλ = _maxλ4_brute_force(m)
+            maxlambda = _maxlambda4_brute_force(m)
         else
-            maxλ = _maxλ4_random(m, n_samples)
+            maxlambda = _maxlambda4_random(m, n_samples)
         end
     elseif method == :bruteforce
-        maxλ = _maxλ4_brute_force(m)
+        maxlambda = _maxlambda4_brute_force(m)
     elseif method == :sample
-        maxλ = _maxλ4_random(m, n_samples)
+        maxlambda = _maxlambda4_random(m, n_samples)
     else
         error("Unknown method")
     end
 
-    return maxλ
+    return maxlambda
 end
 
-function _maxλ4_brute_force(m::AbstractMatrix)
+function _maxlambda4_brute_force(m::AbstractMatrix)
     n = size(m, 2)
     n_include = ceil(Int, n / 2)
     is = axes(m, 2)
@@ -132,43 +132,44 @@ function _maxλ4_brute_force(m::AbstractMatrix)
         @info "Brute forcing $(ncombs) combinatinos. Adjust your expectations accordingly..."
     end
 
-    maxλ = maximum(λ4(m, c) for c in combs)
+    maxlambda = maximum(lambda4(m, c) for c in combs)
 
-    return maxλ
+    return maxlambda
 end
 
-function _maxλ4_random(m::AbstractMatrix, n_samples::Int)
+function _maxlambda4_random(m::AbstractMatrix, n_samples::Int)
     n = size(m, 2)
     n_include = ceil(Int, n / 2)
     is = axes(m, 2)
-    maxλ = maximum(λ4(m, sample(is, n_include, replace = false)) for _ in 1:n_samples)
-    return maxλ
+    maxlambda =
+        maximum(lambda4(m, sample(is, n_include, replace = false)) for _ in 1:n_samples)
+    return maxlambda
 end
 
 """
-    λ5(m::AbstractMatrix)
-    λ5(test::PsychometricTest)
-    λ5(test::PsychometricTest, scale::Symbol)
+    lambda5(m::AbstractMatrix)
+    lambda5(test::PsychometricTest)
+    lambda5(test::PsychometricTest, scale::Symbol)
 
-Return the lower bound estimate of the reliability λ₅ described in $GUTTMAN1945
+Return the lower bound estimate of the reliability lambda₅ described in $GUTTMAN1945
 """
-function λ5(m::AbstractMatrix)
+function lambda5(m::AbstractMatrix)
     C = LowerTriangular(cov(m))
     zerodiag!(C)
     sj = sum(abs2, C, dims = 1)
     Cmax = maximum(sj)
     st = var(sum(m, dims = 2))
-    return λ1(m) + 2 * sqrt(Cmax) / st
+    return lambda1(m) + 2 * sqrt(Cmax) / st
 end
 
 """
-    λ6(m::AbstractMatrix)
-    λ6(test::PsychometricTest)
-    λ6(test::PsychometricTest, scale::Symbol)
+    lambda6(m::AbstractMatrix)
+    lambda6(test::PsychometricTest)
+    lambda6(test::PsychometricTest, scale::Symbol)
 
-Return the lower bound estimate of the reliability λ₆ described in $GUTTMAN1945
+Return the lower bound estimate of the reliability lambda₆ described in $GUTTMAN1945
 """
-function λ6(m::AbstractMatrix)
+function lambda6(m::AbstractMatrix)
     C = cov(m)
     Cinv = inv(C)
     smc = 1 .- 1 ./ diag(Cinv)
@@ -241,17 +242,17 @@ function glb(m::AbstractMatrix)
 end
 
 """
-    μ(m::AbstractMatrix, r::Int)
-    μ(test::PsychometricTest, r::Int)
-    μ(test::PsychometricTest, scale::Symbol, r::Int)
+    mu(m::AbstractMatrix, r::Int)
+    mu(test::PsychometricTest, r::Int)
+    mu(test::PsychometricTest, scale::Symbol, r::Int)
 
-Calculate the lower bound of the reliability μ derived in $TENBERGE1978
+Calculate the lower bound of the reliability mu derived in $TENBERGE1978
 
 ## Notes
-- If `r = 0` then μ is equivalent to Cronbach's alpha.
-- If `r = 1` then μ is equivalent to Guttman's λ₂.
+- If `r = 0` then mu is equivalent to Cronbach's alpha.
+- If `r = 1` then mu is equivalent to Guttman's lambda₂.
 """
-function μ(m::AbstractMatrix, r::Int)
+function mu(m::AbstractMatrix, r::Int)
     r >= 0 || throw(ArgumentError("r must be non-negative."))
 
     n = size(m, 2)
@@ -279,7 +280,21 @@ function μ(m::AbstractMatrix, r::Int)
 end
 
 # generate function definitions for PsychometricTest
-for f in [:λ1, :λ2, :λ3, :λ4, :maxλ4, :λ5, :λ6, :kr20, :kr21, :glb, :μ]
+fs = [
+    :lambda1,
+    :lambda2,
+    :lambda3,
+    :lambda4,
+    :maxlambda4,
+    :lambda5,
+    :lambda6,
+    :kr20,
+    :kr21,
+    :glb,
+    :mu,
+]
+
+for f in fs
     @eval begin
         function $(f)(test::PsychometricTest, args...; kwargs...)
             scales = getscales(test)
