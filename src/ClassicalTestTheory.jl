@@ -4,7 +4,6 @@ using Base: split
 using Combinatorics
 using SCS
 using Distributions
-using InvertedIndices
 using JuMP
 using LinearAlgebra
 using Random
@@ -12,14 +11,8 @@ using StatsBase
 using Statistics
 using PsychometricTests
 using ProgressMeter
-using Memoization
 using Term
 using Tables
-using Printf
-using ThreadsX
-using SplittablesBase
-using ParallelUtilities
-using MultiFloats
 
 export Test, SubTest
 export eachitem, eachperson

@@ -5,7 +5,3 @@ function zerodiag!(m)
 end
 
 zerodiag(m) = m - diagm(diag(m))
-
-
-@memoize mitemcov(x; kwargs...) = itemcov(x; kwargs...)
-@memoize mpersonscores(args...) = personscores(args...)
