@@ -1,3 +1,6 @@
+const DEFAULT_BOOSTRAP_CI = BCaConfInt(0.95)
+const DEFAULT_BOOSTRAP_SAMPLING = BasicSampling(1000)
+
 """
     lambda1(m::AbstractMatrix)
     lambda1(test::PsychometricTest)
@@ -219,7 +222,7 @@ function glb(m::AbstractMatrix)
     upr = diag(C)
     lwr = zeros(n)
 
-    model = Model(SCS.Optimizer)
+    model = JuMP.Model(SCS.Optimizer)
 
     set_silent(model)
     set_string_names_on_creation(model, false)
@@ -237,7 +240,7 @@ function glb(m::AbstractMatrix)
         sum_y = sum(value.(y))
         return (sum(C̃) + sum_y) / sum(C)
     else
-        error("something went wrong")
+        error("something went wrong")  # TODO: Fix error message
     end
 end
 
@@ -256,14 +259,15 @@ function mu(m::AbstractMatrix, r::Int)
     r >= 0 || throw(ArgumentError("r must be non-negative."))
 
     n = size(m, 2)
-    C = BigFloat.(cov(m))
+    C = cov(m)
     zerodiag!(C)
 
     st = var(sum(m, dims = 2))
-    p_sum = zero(BigFloat)
+
+    p_sum = zero(st)
 
     for h in Iterators.reverse(0:r)
-        p_h = sum(c -> c^(2^h), C)
+        p_h = sum(c -> c^(2.0^h), C)
 
         if h == r
             p_h *= n / (n - 1)
@@ -276,7 +280,197 @@ function mu(m::AbstractMatrix, r::Int)
         end
     end
 
-    return Float64(p_sum) / st
+    return p_sum / st
+end
+
+# Reliability Interface for end users
+# 1) single function call to reliability(...)
+# 2) Should work with a single method, e.g. lambda1
+# 3) Should work with multiple methods,
+# 4) Sensible defaults while still allowing customization
+abstract type ReliabilityMeasure <: Function end
+
+name(r::ReliabilityMeasure) = string(nameof(r))
+
+struct L1 <: ReliabilityMeasure end
+(method::L1)(data) = lambda1(data)
+
+struct L2 <: ReliabilityMeasure end
+(method::L2)(data) = lambda2(data)
+
+struct L3 <: ReliabilityMeasure end
+(method::L3)(data) = lambda3(data)
+
+@kwdef struct L4 <: ReliabilityMeasure
+    method::Symbol = :auto
+    n_samples::Int = 10_000
+end
+
+(method::L4)(data) = maxlambda4(data, method = method.method, n_samples = method.n_samples)
+name(r::L4) = "L4($(r.method), $(r.n_samples))"
+
+struct L5 <: ReliabilityMeasure end
+(method::L5)(data) = lambda5(data)
+
+struct L6 <: ReliabilityMeasure end
+(method::L6)(data) = lambda6(data)
+
+struct KR20 <: ReliabilityMeasure end
+(method::KR20)(data) = kr20(data)
+
+struct KR21 <: ReliabilityMeasure end
+(method::KR21)(data) = kr21(data)
+
+struct GLB <: ReliabilityMeasure end
+(method::GLB)(data) = glb(data)
+
+@kwdef struct Mu <: ReliabilityMeasure
+    r::Int
+end
+
+(method::Mu)(data) = mu(data, method.r)
+name(r::Mu) = "Mu($(r.r))"
+
+# convenience
+const GUTTMAN_METHODS = [L1(), L2(), L3(), L4(), L5(), L6()]
+const PSYCH_METHODS = [L4(), L6(), L3(), L2()]
+mu_up_to(r::Int = 10) = [Mu(i) for i in 0:r]
+
+struct ReliabilityResult{D,B,S<:Bootstrap.BootstrapSampling,C<:Bootstrap.ConfIntMethod}
+    data::D
+    bootstrap_samples::B
+    sampling_method::S
+    ci_method::C
+end
+
+
+function reliability(
+    m::AbstractMatrix,
+    methods::Vector{<:ReliabilityMeasure};
+    ci_method = DEFAULT_BOOSTRAP_CI,
+    sampling_method = DEFAULT_BOOSTRAP_SAMPLING,
+)
+    bootstrap_samples = OrderedDict(
+        name(method) => bootstrap(method, m, sampling_method) for method in methods
+    )
+
+    return ReliabilityResult(m, bootstrap_samples, sampling_method, ci_method)
+end
+
+reliability(m, method; kwargs...) = reliability(m, [method]; kwargs...)
+
+# accessors
+data(r::ReliabilityResult) = r.data
+sampling_method(r::ReliabilityResult) = r.sampling_method
+ci_method(r::ReliabilityResult) = r.ci_method
+
+function estimate(r::ReliabilityResult, method::String)
+    return first(original(r.bootstrap_samples[method]))
+end
+
+function estimate(r::ReliabilityResult)
+    return OrderedDict(key => estimate(r, key) for key in keys(r.bootstrap_samples))
+end
+
+function StatsAPI.confint(r::ReliabilityResult, method::String)
+    ci = confint(r.bootstrap_samples[method], r.ci_method)
+    _, lwr, upr = first(ci)
+    return lwr, upr
+end
+
+function StatsAPI.confint(r::ReliabilityResult)
+    return OrderedDict(key => confint(r, key) for key in keys(r.bootstrap_samples))
+end
+
+function Bootstrap.bias(r::ReliabilityResult, method::String)
+    b = Bootstrap.bias(r.bootstrap_samples[method])
+    return first(b)
+end
+
+function Bootstrap.bias(r::ReliabilityResult)
+    return OrderedDict(key => bias(r, key) for key in keys(r.bootstrap_samples))
+end
+
+function Bootstrap.stderror(r::ReliabilityResult, method::String)
+    b = Bootstrap.stderror(r.bootstrap_samples[method])
+    return first(b)
+end
+
+function Bootstrap.stderror(r::ReliabilityResult)
+    return OrderedDict(key => stderror(r, key) for key in keys(r.bootstrap_samples))
+end
+
+function samples(r::ReliabilityResult, method::String)
+    b = straps(r.bootstrap_samples[method])
+    return first(b)
+end
+
+function samples(r::ReliabilityResult)
+    return OrderedDict(key => samples(r, key) for key in keys(r.bootstrap_samples))
+end
+
+
+function Base.show(io::IO, mime::MIME"text/plain", result::ReliabilityResult)
+    ci = confint(result)
+
+    fmt = x -> @sprintf "%.2f" x
+
+    ci_method_name = methodname(ci_method(result))
+    ci_level = level(ci_method(result))
+    quant_lwr, quant_upr = quantilesfromlevel(ci_level)
+
+    sampling_method_name = methodname(sampling_method(result))
+    n_samples = nrun(sampling_method(result))
+
+    partable = OrderedDict(
+        "method" => collect(keys(result.bootstrap_samples)),
+        "estimate" => fmt.(values(estimate(result))),
+        "stderror" => fmt.(values(stderror(result))),
+        prettyquantile(quant_lwr) => fmt.(first.(values(ci))),
+        prettyquantile(quant_upr) => fmt.(last.(values(ci))),
+    )
+
+    header = OrderedDict(
+        "1" => [
+            "confidence interval method:",
+            "confidence level:",
+            "bootstrap sampling method:",
+            "bootstrap iterations",
+        ],
+        "2" => [
+            "{cyan}$(ci_method_name){/cyan}",
+            "{magenta}$(ci_level){/magenta}",
+            "{cyan}$(sampling_method_name){/cyan}",
+            "{magenta}$(n_samples){/magenta}",
+        ],
+    )
+
+    print(
+        io,
+        CTTPanel(
+            "",
+            Term.Table(
+                header,
+                box = :NONE,
+                compact = true,
+                show_header = false,
+                columns_justify = :left,
+            ),
+            # "confidence interval method: {cyan}$(ci_method_name){/cyan}",
+            # "confidence level: {magenta}$(ci_level){/magenta}",
+            # "bootstrap sampling method: {cyan}$(sampling_method_name){/cyan}",
+            # "bootstrap iterations: {magenta}$(n_samples){/magenta}",
+            Term.Table(
+                partable,
+                header_style = "green bold",
+                columns_style = ["bold red", "", "", "", ""],
+                style = "dim",
+                box = :SIMPLE,
+            ),
+            title = "Reliability Analysis",
+        ),
+    )
+    return ""
 end
 
 # generate function definitions for PsychometricTest

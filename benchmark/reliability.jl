@@ -10,6 +10,8 @@ test = PsychometricTest(data)
 
 ia = ClassicalTestTheory.itemanalysis(test)
 
+ClassicalTestTheory.reliability(m, ClassicalTestTheory.PSYCH_METHODS)
+
 # lambda1
 lambda1(m)
 lambda1(test)
@@ -42,3 +44,7 @@ find(test, 6)
 @code_warntype find(test, 6)
 
 @profview_allocs find(test, 6, criterion = alpha) sample_rate = 1
+
+# test bootstrapping
+using Bootstrap
+

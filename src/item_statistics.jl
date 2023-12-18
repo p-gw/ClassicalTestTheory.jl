@@ -116,21 +116,27 @@ struct ItemStatistics{Ti,T<:Real}
     std::T
 end
 
+function ItemStatistics(name, test_data, item_data, item_index)
+    return ItemStatistics(
+        string(name),
+        sum(!ismissing, item_data),
+        sum(ismissing, item_data),
+        itc(test_data, item_index, corrected = false),
+        itc(test_data, item_index, corrected = false, standardize = true),
+        itc(test_data, item_index, corrected = :henrysson),
+        mean(item_data),
+        std(item_data),
+    )
+end
+
+function ItemStatistics(m::AbstractMatrix, j; name = "Item " * string(j))
+    item_responses = vec(m[:, j])
+    return ItemStatistics(name, m, item_responses, j)
+end
+
 function ItemStatistics(test::PsychometricTest, i)
     item_responses = vec(getvalue.(test[:, i]))
-
-    stats = ItemStatistics(
-        i,
-        sum(!ismissing, item_responses),  # number of complete cases
-        sum(ismissing, item_responses),  # number of missings
-        itc(test, i, corrected = false),
-        itc(test, i, corrected = false, standardize = true),
-        itc(test, i, corrected = :henrysson),
-        itemmean(test, i),
-        std(item_responses),
-    )
-
-    return stats
+    return ItemStatistics(i, test, item_responses, i)
 end
 
 struct ItemAnalysis
@@ -140,23 +146,32 @@ end
 function Base.show(io::IO, items::ItemAnalysis)
     tbl = Tables.columns(items.statistics)
 
-    # TODO: nicer solution
-    tbl.itc .= round.(tbl.itc, digits = 2)
-    tbl.itc_std .= round.(tbl.itc_std, digits = 2)
-    tbl.itc_corrected .= round.(tbl.itc_corrected, digits = 2)
-    tbl.mean .= round.(tbl.mean, digits = 2)
-    tbl.std .= round.(tbl.std, digits = 2)
+    rounded_cols = [:itc, :itc_std, :itc_corrected, :mean, :std]
+
+    for col in rounded_cols
+        coldata = Tables.getcolumn(tbl, col)
+        coldata .= round.(coldata, digits = 2)  # TODO: keep trailing digits
+    end
 
     header = ["item", "N", "missings", "itc", "itc (std)", "itc (cor)", "mean", "std"]
     print(
         io,
-        # Term.Panel(
-        Term.Table(tbl; header, compact = false),
-        # title = "{dim}Item Analysis",
-        # style = "dim",
-        # subtitle = "{dim}ClassicalTestTheory.jl",
-        # subtitle_justify = :right,
-        # ),
+        Term.Panel(
+            Term.Table(
+                tbl;
+                header,
+                header_style = "green bold",
+                columns_style = ["bold yellow", "", "", "", "", "", "", ""],
+                style = "dim",
+                box = :SIMPLE,
+                compact = false,
+            ),
+            title = "{dim}Item Analysis",
+            style = "dim",
+            subtitle = "{dim}ClassicalTestTheory.jl",
+            subtitle_justify = :right,
+            fit = true,
+        ),
     )
 
     return nothing
@@ -164,5 +179,10 @@ end
 
 function itemanalysis(test::PsychometricTest)
     item_statistics = [ItemStatistics(test, getid(i)) for i in getitems(test)]
+    return ItemAnalysis(item_statistics)
+end
+
+function itemanalysis(m::AbstractMatrix)
+    item_statistics = [ItemStatistics(m, j) for j in axes(m, 2)]
     return ItemAnalysis(item_statistics)
 end
