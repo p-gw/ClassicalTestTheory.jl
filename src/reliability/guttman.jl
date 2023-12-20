@@ -8,7 +8,8 @@ Calculate the lower bound estimate of the reliability L₁ described in $GUTTMAN
 function lambda1(m::AbstractMatrix)
     sum_sj = sum(var, eachcol(m))
     st = var(sum(m, dims = 2))
-    return 1 - (sum_sj / st)
+    λ = 1 - (sum_sj / st)
+    return λ
 end
 
 struct L1 <: ReliabilityMeasure end
@@ -26,8 +27,8 @@ function lambda2(m::AbstractMatrix)
     C = cov(m)
     zerodiag!(C)
     st = var(sum(m, dims = 2))
-    rel = lambda1(m) + sqrt(n / (n - 1) * sum(abs2, C)) / st
-    return rel
+    λ = lambda1(m) + sqrt(n / (n - 1) * sum(abs2, C)) / st
+    return λ
 end
 
 struct L2 <: ReliabilityMeasure end
@@ -42,7 +43,8 @@ Calculate the lower bound estimate of the reliability lambda₃ described in $GU
 """
 function lambda3(m::AbstractMatrix)
     n = size(m, 2)
-    return n / (n - 1) * lambda1(m)
+    λ = n / (n - 1) * lambda1(m)
+    return λ
 end
 
 struct L3 <: ReliabilityMeasure end
@@ -85,7 +87,8 @@ function lambda4(m::AbstractMatrix; type::Symbol = :firstlast)
     s1 = var(sum(splits[1], dims = 2))
     s2 = var(sum(splits[2], dims = 2))
 
-    return 2 * (1 - (s1 + s2) / st)
+    λ = 2 * (1 - (s1 + s2) / st)
+    return λ
 end
 
 function lambda4(m::AbstractMatrix, is)
@@ -95,9 +98,9 @@ function lambda4(m::AbstractMatrix, is)
     s1 = var(sum(splits[1], dims = 2))
     s2 = var(sum(splits[2], dims = 2))
 
-    return 2 * (1 - (s1 + s2) / st)
+    λ = 2 * (1 - (s1 + s2) / st)
+    return λ
 end
-
 
 """
     maxlambda4(m::AbstractMatrix; method = :auto, n_samples = 10_000)
@@ -115,25 +118,39 @@ are:
 
 See also [`lambda4`](@ref).
 """
-function maxlambda4(m::AbstractMatrix; method = :auto, n_samples = 10_000)
-    if method == :auto
-        if size(m, 2) <= 25
-            maxlambda = _maxlambda4_brute_force(m)
-        else
-            maxlambda = _maxlambda4_random(m, n_samples)
-        end
-    elseif method == :bruteforce
-        maxlambda = _maxlambda4_brute_force(m)
+struct Lambda4{F,E,S}
+    statistic::F
+    estimate::E
+    samples::S
+end
+
+Base.show(io::IO, lambda4::Lambda4) = print(io, lambda4.estimate)
+
+function lambda4(
+    statistic::F,
+    m::AbstractMatrix;
+    method = :auto,
+    n_samples = 10_000,
+) where {F}
+    method = method == :auto && size(m, 2) <= 25 ? :bruteforce : :sample
+    samples = lambda4_samples(m; method, n_samples)
+
+    λ = statistic(samples)
+    return Lambda4(statistic, λ, samples)
+end
+
+function lambda4_samples(m::AbstractMatrix; method = :bruteforce, n_samples = 10_000)
+    if method == :bruteforce
+        λ = _lambda4_brute_force(m)
     elseif method == :sample
-        maxlambda = _maxlambda4_random(m, n_samples)
+        λ = _lambda4_random(m, n_samples)
     else
         error("Unknown method")
     end
-
-    return maxlambda
+    return λ
 end
 
-function _maxlambda4_brute_force(m::AbstractMatrix)
+function _lambda4_brute_force(m::AbstractMatrix)
     n = size(m, 2)
     n_include = ceil(Int, n / 2)
     is = axes(m, 2)
@@ -145,27 +162,36 @@ function _maxlambda4_brute_force(m::AbstractMatrix)
         @info "Brute forcing $(ncombs) combinatinos. Adjust your expectations accordingly..."
     end
 
-    maxlambda = maximum(lambda4(m, c) for c in combs)
+    λ = [lambda4(m, c) for c in combs]
 
-    return maxlambda
+    return λ
 end
 
-function _maxlambda4_random(m::AbstractMatrix, n_samples::Int)
+function _lambda4_random(m::AbstractMatrix, n_samples::Int)
     n = size(m, 2)
     n_include = ceil(Int, n / 2)
     is = axes(m, 2)
-    maxlambda =
-        maximum(lambda4(m, sample(is, n_include, replace = false)) for _ in 1:n_samples)
-    return maxlambda
+    λ = [lambda4(m, sample(is, n_include, replace = false)) for _ in 1:n_samples]
+    return λ
 end
 
-@kwdef struct L4 <: ReliabilityMeasure
+@kwdef struct L4{F} <: ReliabilityMeasure
+    statistic::F = maximum
     method::Symbol = :auto
     n_samples::Int = 10_000
 end
 
-(method::L4)(data) = maxlambda4(data, method = method.method, n_samples = method.n_samples)
-name(r::L4) = "L4(:$(r.method), $(r.n_samples))"
+function (method::L4)(data)
+    λ = lambda4(
+        method.statistic,
+        data,
+        method = method.method,
+        n_samples = method.n_samples,
+    )
+    return λ.estimate
+end
+
+name(r::L4) = "L4($(r.statistic), :$(r.method), $(r.n_samples))"
 
 """
     lambda5(m::AbstractMatrix)
