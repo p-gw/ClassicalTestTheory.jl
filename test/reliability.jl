@@ -32,10 +32,11 @@
 
     @testset "mu" begin
         @test_throws ArgumentError mu(m, -1)
+        @test mu(m, 1) ≈ mu(BigFloat, m, 1)
 
         # theoretical guarantees
         for r in 1:10
-            @test mu(m, r - 1) <= mu(m, r)
+            @test mu(BigFloat, m, r - 1) <= mu(BigFloat, m, r)
         end
 
         @test mu(m, 0) ≈ alpha(m)

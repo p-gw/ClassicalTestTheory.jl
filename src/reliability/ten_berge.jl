@@ -8,15 +8,29 @@ Calculate the lower bound of the reliability mu derived in $TENBERGE1978
 - If `r = 1` then mu is equivalent to Guttman's lambda₂.
 """
 function mu(m::AbstractMatrix, r::Int)
-    r >= 0 || throw(ArgumentError("r must be non-negative."))
-
     n = size(m, 2)
     C = cov(m)
     zerodiag!(C)
 
     st = var(sum(m, dims = 2))
+    μ = _mu(C, st, n, r)
+    return μ
+end
 
-    p_sum = zero(st)
+function mu(::Type{T}, m::AbstractMatrix, r::Int) where {T}
+    n = size(m, 2)
+    C = T.(cov(m))
+    zerodiag!(C)
+
+    st = var(sum(m, dims = 2))
+    μ = _mu(C, st, n, r)
+    return μ
+end
+
+function _mu(C, st, n, r::Int)
+    r >= 0 || throw(ArgumentError("r must be non-negative."))
+
+    p_sum = zero(eltype(C))
 
     for h in Iterators.reverse(0:r)
         p_h = sum(c -> c^(2.0^h), C)
@@ -26,7 +40,7 @@ function mu(m::AbstractMatrix, r::Int)
         end
 
         if h == 0
-            p_sum = p_sum + p_h
+            p_sum += p_h
         else
             p_sum = sqrt(p_sum + p_h)
         end
