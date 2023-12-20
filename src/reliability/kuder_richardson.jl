@@ -1,7 +1,5 @@
 """
     kr20(m::AbstractMatrix)
-    kr20(test::PsychometricTest)
-    kr20(test::PsychometricTest, scale::Symbol)
 """
 function kr20(m::AbstractMatrix)
     n = size(m, 2)
@@ -16,8 +14,6 @@ struct KR20 <: ReliabilityMeasure end
 
 """
     kr21(m::AbstractMatrix)
-    kr21(test::PsychometricTest)
-    kr21(test::PsychometricTest, scale::Symbol)
 """
 function kr21(m::AbstractMatrix)
     n = size(m, 2)

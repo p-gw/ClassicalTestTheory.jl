@@ -1,7 +1,5 @@
 """
     lambda1(m::AbstractMatrix)
-    lambda1(test::PsychometricTest)
-    lambda1(test::PsychometricTest, scale::Symbol)
 
 Calculate the lower bound estimate of the reliability L₁ described in $GUTTMAN1945
 """
@@ -17,8 +15,6 @@ struct L1 <: ReliabilityMeasure end
 
 """
     lambda2(scale::AbstractScale)
-    lambda2(test::PsychometricTest)
-    lambda2(test::PsychometricTest, scale::Symbol)
 
 Calculate the lower bound estimate of the reliability lambda₂ described in $GUTTMAN1945
 """
@@ -36,8 +32,6 @@ struct L2 <: ReliabilityMeasure end
 
 """
     lambda3(m::AbstractMatrix)
-    lambda3(test::PsychometricTest)
-    lambda3(test::PsychometricTest, scale::Symbol)
 
 Calculate the lower bound estimate of the reliability lambda₃ described in $GUTTMAN1945
 """
@@ -52,8 +46,6 @@ struct L3 <: ReliabilityMeasure end
 
 """
     alpha(m::AbstractMatrix)
-    alpha(test::PsychometricTest)
-    alpha(test::PsychometricTest, scale::Symbol)
 
 Estimate Cronbach's alpha. `alpha` is an alias for [`lambda3`](@ref).
 """
@@ -64,8 +56,6 @@ struct Alpha <: ReliabilityMeasure end
 
 """
     lambda4(m::AbstractMatrix; type::Symbol = :firstlast)
-    lambda4(test::PsychometricTest; type::Symbol = :firstlast)
-    lambda4(test::PsychometricTest, scale::Symbol; type::Symbol = :firstlast)
 
 Return the lower bound estimate of the reliability lambda₄ described in $GUTTMAN1945
 
@@ -104,8 +94,6 @@ end
 
 """
     maxlambda4(m::AbstractMatrix; method = :auto, n_samples = 10_000)
-    maxlambda4(test::PsychometricTest; method = :auto, n_samples = 10_000)
-    maxlambda4(test::PsychometricTest, scale::Symbol; method = :auto, n_samples = 10_000)
 
 Calculate the maximum lower bound estimate of the reliability lambda₄ described in $GUTTMAN1945
 
@@ -195,8 +183,6 @@ name(r::L4) = "L4($(r.statistic), :$(r.method), $(r.n_samples))"
 
 """
     lambda5(m::AbstractMatrix)
-    lambda5(test::PsychometricTest)
-    lambda5(test::PsychometricTest, scale::Symbol)
 
 Return the lower bound estimate of the reliability lambda₅ described in $GUTTMAN1945
 """
@@ -214,8 +200,6 @@ struct L5 <: ReliabilityMeasure end
 
 """
     lambda6(m::AbstractMatrix)
-    lambda6(test::PsychometricTest)
-    lambda6(test::PsychometricTest, scale::Symbol)
 
 Return the lower bound estimate of the reliability lambda₆ described in $GUTTMAN1945
 """

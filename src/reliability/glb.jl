@@ -1,7 +1,5 @@
 """
     glb(m::AbstractMatrix)
-    glb(test::PsychometricTest)
-    glb(test::PsychometricTest, scale::Symbol)
 
 Return the greatest lower bound estimate (glb) of the reliability as described in
 $WOODHOUSE1977

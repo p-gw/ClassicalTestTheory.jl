@@ -1,26 +1,11 @@
 """
     find(m::AbstractMatrix, n::Int; criterion = glb, progress = true)
-    find(test::PsychometricTest, n::Int; criterion = glb, progress = true)
 
 Perform an exhaustive search to find the subset of `n` items with maximum reliability.
 """
 function find(m::AbstractMatrix, args...; kwargs...)
     is = _find(m, args...; kwargs...)
     return m[:, is]
-end
-
-function find(test::PsychometricTest, args...; kwargs...)
-    responses = response_matrix(test)
-    is = _find(responses, args...; kwargs...)
-    item_ids = getid.(getitems(test)[is])
-    return subset(test, :, item_ids)
-end
-
-function find(test::PsychometricTest, scale::Symbol, args...; kwargs...)
-    responses = response_matrix(test, scale)
-    is = _find(responses, args...; kwargs...)
-    item_ids = getid.(getitems(test)[is])
-    return subset(test, :, item_ids)
 end
 
 function _find(

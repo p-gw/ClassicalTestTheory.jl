@@ -8,8 +8,6 @@ using JuMP
 using LinearAlgebra
 using Random
 using StatsBase
-using Statistics
-using PsychometricTests
 using ProgressMeter
 using Term
 using Tables

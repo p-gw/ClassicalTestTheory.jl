@@ -1,7 +1,5 @@
 """
     mu(m::AbstractMatrix, r::Int)
-    mu(test::PsychometricTest, r::Int)
-    mu(test::PsychometricTest, scale::Symbol, r::Int)
 
 Calculate the lower bound of the reliability mu derived in $TENBERGE1978
 
