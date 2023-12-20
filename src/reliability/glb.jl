@@ -22,16 +22,14 @@ function glb(m::AbstractMatrix)
 
     @objective(model, Min, sum(y))
     @constraint(model, lwr .<= y .<= upr)
-    @constraint(model, A in PSDCone())
+    @constraint(model, A >= 0, PSDCone())
 
     optimize!(model)
 
-    if termination_status(model) == OPTIMAL
-        sum_y = sum(value.(y))
-        return (sum(C̃) + sum_y) / sum(C)
-    else
-        error("something went wrong")  # TODO: Fix error message
-    end
+    termination_status(model) == OPTIMAL || error("Failed to optimize GLB of reliability")
+
+    sum_y = sum(value.(y))
+    return (sum(C̃) + sum_y) / sum(C)
 end
 
 struct GLB <: ReliabilityMeasure end
