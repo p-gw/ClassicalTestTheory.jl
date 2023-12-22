@@ -168,7 +168,9 @@ function reliability(
     return ReliabilityResult(m, bootstrap_samples, sampling_method, ci_method)
 end
 
-reliability(m, method; kwargs...) = reliability(m, [method]; kwargs...)
+function reliability(m::AbstractMatrix, method::ReliabilityMeasure; kwargs...)
+    return reliability(m, [method]; kwargs...)
+end
 
 function Base.show(io::IO, mime::MIME"text/plain", result::ReliabilityResult)
     ci = confint(result)

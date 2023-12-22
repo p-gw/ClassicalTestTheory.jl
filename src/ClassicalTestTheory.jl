@@ -48,4 +48,6 @@ include("reliability/reliability.jl")
 include("item_statistics.jl")
 include("find.jl")
 
+include("precompile.jl")
+
 end

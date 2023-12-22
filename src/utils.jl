@@ -9,7 +9,7 @@ zerodiag(m) = m - diagm(diag(m))
 function CTTPanel(args...; title = nothing)
     return Term.Panel(
         args...;
-        title = "{dim}" * title * "{/dim}",
+        title = isnothing(title) ? nothing : "{dim}" * title * "{/dim}",
         style = "dim",
         subtitle = "{dim}ClassicalTestTheory.jl{/dim}",
         subtitle_justify = :right,
