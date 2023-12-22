@@ -1,6 +1,5 @@
 using ClassicalTestTheory
 using Distributions
-using PsychometricTests
 using Test
 
 @testset "ClassicalTestTheory.jl" begin

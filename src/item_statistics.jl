@@ -67,12 +67,6 @@ function _itc_uncorrected(m::AbstractMatrix, i; standardize)
     return cor(responses, total_scores)
 end
 
-function _itc_uncorrected(test::PsychometricTest, i; standardize)
-    responses = response_matrix(test)
-    item_ind = findfirst(x -> x == i, getid.(getitems(test)))
-    return _itc_uncorrected(responses, item_ind; standardize)
-end
-
 function _itc_henrysson(m::AbstractMatrix, i; standardize)
     is = filter(x -> x != i, axes(m, 2))
     corrected_m = view(m, :, is)
@@ -80,30 +74,6 @@ function _itc_henrysson(m::AbstractMatrix, i; standardize)
     total_scores = vec(sum(corrected_m, dims = 2))
     return cor(responses, total_scores)
 end
-
-function _itc_henrysson(test::PsychometricTest, i; standardize)
-    responses = response_matrix(test)
-    item_ind = findfirst(x -> x == i, getid.(getitems(test)))
-    return _itc_henrysson(responses, item_ind; standardize)
-end
-
-# function _itc_zubin(x, i)
-#     itc = _itc_uncorrected(x, i)
-#     st = std(scores(x))
-#     fv = facility(x, i)
-#     y = cdf(Normal(), fv)
-#     pqy = fv * (1 - fv) / y
-#     return (itc * st - pqy) / sqrt(st^2 + 1 - 2 * itc * st)
-# end
-
-# function _itc_guilford(x, i)
-#     itc = _itc_uncorrected(x, i)
-#     st = std(scores(x))
-#     fv = facility(x, i)
-#     y = cdf(Normal(), fv)
-#     pqy = fv * (1 - fv) / y
-#     return (itc * st - pqy) / sqrt(st^2 + pqy^2 - 2 * itc * st * pqy)
-# end
 
 struct ItemStatistics{Ti,T<:Real}
     item::Ti
@@ -132,11 +102,6 @@ end
 function ItemStatistics(m::AbstractMatrix, j; name = "Item " * string(j))
     item_responses = vec(m[:, j])
     return ItemStatistics(name, m, item_responses, j)
-end
-
-function ItemStatistics(test::PsychometricTest, i)
-    item_responses = vec(getvalue.(test[:, i]))
-    return ItemStatistics(i, test, item_responses, i)
 end
 
 struct ItemAnalysis
@@ -175,11 +140,6 @@ function Base.show(io::IO, items::ItemAnalysis)
     )
 
     return nothing
-end
-
-function itemanalysis(test::PsychometricTest)
-    item_statistics = [ItemStatistics(test, getid(i)) for i in getitems(test)]
-    return ItemAnalysis(item_statistics)
 end
 
 function itemanalysis(m::AbstractMatrix)
