@@ -9,11 +9,9 @@ using LinearAlgebra
 using OrderedCollections
 using Printf
 using ProgressMeter
-using PsychometricTests
 using Random
 using Reexport
 using SCS
-using Statistics
 using StatsAPI
 using StatsBase
 using Tables
