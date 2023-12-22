@@ -1,25 +1,26 @@
 module ClassicalTestTheory
 
-using Base: split
+using Base: @kwdef
+using Bootstrap
 using Combinatorics
-using SCS
 using Distributions
 using JuMP
 using LinearAlgebra
-using Random
-using StatsBase
-using Statistics
-using PsychometricTests
-using ProgressMeter
-using Term
-using Tables
-using Bootstrap
-using StatsAPI
-using Printf
-using Reexport
 using OrderedCollections
+using Printf
+using ProgressMeter
+using PsychometricTests
+using Random
+using Reexport
+using SCS
+using Statistics
+using StatsAPI
+using StatsBase
+using Tables
+using Term
 
-@reexport using StatsAPI: confint, stderror
+@reexport import StatsAPI: confint, stderror
+import Base: split
 
 # reliability measures
 export lambda1, lambda2, lambda3, lambda4, maxlambda4, lambda5, lambda6
