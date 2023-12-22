@@ -1,7 +1,5 @@
 @testset "Reliability" begin
     # set up some irt style test data with correlated responses
-    Random.seed!(859345)
-
     difficulties = randn(10)
     abilities = randn(100)
 
@@ -15,32 +13,33 @@
         end
     end
 
-    t = ClassicalTestTheory.Test(m)
-
-    @testset "equality of Matrix and Test methods" begin
-        @test λ1(m) ≈ λ1(t)
-        @test λ2(m) ≈ λ2(t)
-        @test λ3(m) ≈ λ3(t)
-        @test λ4(m) ≈ λ4(t)
-        @test maxλ4(m, method=:bruteforce) ≈ maxλ4(t, method=:bruteforce)
-        @test λ5(m) ≈ λ5(t)
-        @test λ6(m) ≈ λ6(t)
-
-        @test kr20(m) ≈ kr20(t)
-        @test kr21(m) ≈ kr21(t)
-
-        @test glb(m) ≈ glb(t)
-
+    @testset "lambda" begin
+        # theoretical guarantees
+        @test lambda1(m) > 0
+        @test lambda1(m) <
+              lambda3(m) <=
+              lambda2(m) <=
+              lambda4(maximum, m, method = :bruteforce).estimate
+        @test alpha(m) == lambda3(m)
+        @test lambda4(maximum, m, method = :sample, n_samples = 100).estimate <=
+              lambda4(maximum, m, method = :bruteforce).estimate
     end
 
-    @testset "theoretical guarantees of λ" begin
-        @test λ1(t) > 0
-        @test λ1(t) < λ3(t) <= λ2(t) <= maxλ4(t, method=:bruteforce)
-        @test α(t) == λ3(t)
+    @testset "glb" begin
+        # theoretical guarantees
+        @test lambda4(maximum, m, method = :bruteforce).estimate <= glb(m)
     end
 
-    # theoretical guarantees of glb
-    @testset "theoretical guarantees of glb" begin
-        @test maxλ4(t, method=:bruteforce) <= glb(t)
+    @testset "mu" begin
+        @test_throws ArgumentError mu(m, -1)
+        @test mu(m, 1) ≈ mu(BigFloat, m, 1)
+
+        # theoretical guarantees
+        for r in 1:10
+            @test mu(BigFloat, m, r - 1) <= mu(BigFloat, m, r)
+        end
+
+        @test mu(m, 0) ≈ alpha(m)
+        @test mu(m, 1) ≈ lambda2(m)
     end
 end

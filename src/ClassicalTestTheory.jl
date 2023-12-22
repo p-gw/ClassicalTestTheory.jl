@@ -1,36 +1,53 @@
 module ClassicalTestTheory
 
-using Base: split
+using Base: @kwdef
+using Bootstrap
 using Combinatorics
-using SCS
 using Distributions
-using InvertedIndices
 using JuMP
 using LinearAlgebra
+using OrderedCollections
+using Printf
 using ProgressMeter
 using Random
+using Reexport
+using SCS
+using StatsAPI
 using StatsBase
-using Statistics
+using Tables
+using Term
 
-export Test, SubTest
-export eachitem, eachperson
-export scores, responses, nitems, npersons
+@reexport import StatsAPI: confint, stderror
+import Base: split
 
-export split, splithalf
+# reliability measures
+export lambda1, lambda2, lambda3, lambda4, maxlambda4, lambda5, lambda6, alpha
+export L1, L2, L3, L4, L5, L6, Alpha
+export GUTTMAN_METHODS, PSYCH_METHODS, mu_up_to
 
-export difficulty, facility, itc
-
-export λ1, λ2, λ3, λ4, maxλ4, λ5, λ6
-export α
 export kr20, kr21
-export glb
+export KR20, KR21
+
+export glb, mu
+export GLB, Mu
+
+export reliability
+
+export estimate, bootstrap_sample
+
+# item statistics
+export itc, itemanalysis
+
+# find
 export find
 
+include("references.jl")
 include("utils.jl")
-include("types.jl")
 include("split.jl")
+include("reliability/reliability.jl")
 include("item_statistics.jl")
-include("reliability.jl")
 include("find.jl")
+
+include("precompile.jl")
 
 end
