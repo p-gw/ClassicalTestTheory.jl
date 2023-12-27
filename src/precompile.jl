@@ -27,6 +27,8 @@ using PrecompileTools
         ia = itemanalysis(m)
 
         # find
-        find(m, 2, criterion = alpha)
+        for method in methods
+            find(m, 2, method)
+        end
     end
 end

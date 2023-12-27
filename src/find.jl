@@ -1,7 +1,8 @@
 """
-    find(m::AbstractMatrix, n::Int; criterion = glb, progress = true)
+    find(m::AbstractMatrix, n::Int, method::ReliabilityMeasure = GLB(); progress = true)
 
-Perform an exhaustive search to find the subset of `n` items with maximum reliability.
+Perform an exhaustive search to find the subset of `n` items with maximum reliability, where
+`method` is used to estimate the reliability.
 """
 function find(m::AbstractMatrix, args...; kwargs...)
     is = _find(m, args...; kwargs...)
@@ -10,11 +11,10 @@ end
 
 function _find(
     m::AbstractMatrix,
-    n::Int;
-    criterion::F = glb,
+    n::Int,
+    method::ReliabilityMeasure = GLB();
     progress = true,
-    kwargs...,
-) where {F}
+)
     if n >= size(m, 2)
         throw(
             ArgumentError(
@@ -27,32 +27,26 @@ function _find(
     combs = combinations(is, n)
 
     optimal_is = zeros(Int, n)
-    max_crit = -Inf
+    max_reliability = -Inf
 
-    prog = Progress(
-        length(combs),
-        dt = 0.5,
-        barglyphs = BarGlyphs("[=> ]"),
-        enabled = progress,
-    )
+    prog = ProgressBar(transient = true)
 
-    for (i, c) in enumerate(combs)
-        subtest = view(m, :, c)
-        crit = criterion(subtest; kwargs...)
+    Progress.with(prog) do
+        prog_job =
+            addjob!(prog, N = length(combs), description = "Finding optimal item subset...")
 
-        if crit > max_crit
-            max_crit = crit
-            optimal_is = c
+        for c in combs
+            subtest = view(m, :, c)
+            reliability = method(subtest)
+
+            if reliability > max_reliability
+                max_reliability = reliability
+                optimal_is = c
+            end
+
+            update!(prog_job)
         end
-
-        ProgressMeter.update!(
-            prog,
-            i,
-            showvalues = [(:items, optimal_is), (:reliability, max_crit)],
-        )
     end
-
-    ProgressMeter.finish!(prog)
 
     return optimal_is
 end
