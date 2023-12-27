@@ -31,7 +31,7 @@ function _find(
 
     prog = ProgressBar(transient = true)
 
-    with(prog) do
+    Progress.with(prog) do
         prog_job =
             addjob!(prog, N = length(combs), description = "Finding optimal item subset...")
 
