@@ -8,7 +8,6 @@ using JuMP
 using LinearAlgebra
 using OrderedCollections
 using Printf
-using ProgressMeter
 using Random
 using Reexport
 using SCS
@@ -16,6 +15,7 @@ using StatsAPI
 using StatsBase
 using Tables
 using Term
+using Term.Progress
 
 @reexport import StatsAPI: confint, stderror
 import Base: split
