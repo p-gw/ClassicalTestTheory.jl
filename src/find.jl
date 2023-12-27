@@ -1,5 +1,5 @@
 """
-    find(m::AbstractMatrix, n::Int; criterion = glb, progress = true)
+    find(m::AbstractMatrix, n::Int, method::ReliabilityMeasure = GLB(); progress = true)
 
 Perform an exhaustive search to find the subset of `n` items with maximum reliability.
 """
@@ -10,11 +10,10 @@ end
 
 function _find(
     m::AbstractMatrix,
-    n::Int;
-    criterion::F = glb,
+    n::Int,
+    method::ReliabilityMeasure = GLB();
     progress = true,
-    kwargs...,
-) where {F}
+)
     if n >= size(m, 2)
         throw(
             ArgumentError(
@@ -27,7 +26,7 @@ function _find(
     combs = combinations(is, n)
 
     optimal_is = zeros(Int, n)
-    max_crit = -Inf
+    max_reliability = -Inf
 
     prog = Progress(
         length(combs),
@@ -38,17 +37,17 @@ function _find(
 
     for (i, c) in enumerate(combs)
         subtest = view(m, :, c)
-        crit = criterion(subtest; kwargs...)
+        reliability = method(subtest)
 
-        if crit > max_crit
-            max_crit = crit
+        if reliability > max_reliability
+            max_reliability = reliability
             optimal_is = c
         end
 
         ProgressMeter.update!(
             prog,
             i,
-            showvalues = [(:items, optimal_is), (:reliability, max_crit)],
+            showvalues = [(:items, optimal_is), (:reliability, max_reliability)],
         )
     end
 
