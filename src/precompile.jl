@@ -28,7 +28,7 @@ using PrecompileTools
 
         # find
         for method in methods
-            find(m, 2, method)
+            find(m, 2, method, progress = false)
         end
     end
 end

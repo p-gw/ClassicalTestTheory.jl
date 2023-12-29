@@ -27,26 +27,40 @@ function _find(
     combs = combinations(is, n)
 
     optimal_is = zeros(Int, n)
-    max_reliability = -Inf
+    max_reliability = Ref(-Inf)
 
-    prog = ProgressBar(transient = true)
+    if progress
+        prog = ProgressBar(transient = true)
 
-    Progress.with(prog) do
-        prog_job =
-            addjob!(prog, N = length(combs), description = "Finding optimal item subset...")
+        Progress.with(prog) do
+            prog_job = addjob!(
+                prog,
+                N = length(combs),
+                description = "Finding optimal item subset...",
+            )
 
-        for c in combs
-            subtest = view(m, :, c)
-            reliability = method(subtest)
-
-            if reliability > max_reliability
-                max_reliability = reliability
-                optimal_is = c
+            for c in combs
+                _update_reliability!(max_reliability, optimal_is, m, c, method)
+                update!(prog_job)
             end
-
-            update!(prog_job)
+        end
+    else
+        for c in combs
+            _update_reliability!(max_reliability, optimal_is, m, c, method)
         end
     end
 
     return optimal_is
+end
+
+function _update_reliability!(max_reliability, optimal_is, m, c, method)
+    subtest = view(m, :, c)
+    reliability = method(subtest)
+
+    if reliability > max_reliability[]
+        max_reliability[] = reliability
+        optimal_is .= c
+    end
+
+    return nothing
 end
