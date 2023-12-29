@@ -18,9 +18,10 @@
 
     # test
     @test_throws ArgumentError find(m, n_items + 2)
-    @test size(find(m, 2)) == (n_persons, 2)
-    @test size(find(m, 1)) == (n_persons, 1)
+    @test size(find(m, 2, progress = false)) == (n_persons, 2)
+    @test size(find(m, 1, progress = false)) == (n_persons, 1)
 
-    @test find(m_extended, n_items) == m
+    @test find(m_extended, n_items, progress = false) == m
+    @test find(m, 2, progress = true) == find(m, 2, progress = false)
 end
 
